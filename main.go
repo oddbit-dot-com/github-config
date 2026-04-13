@@ -9,6 +9,14 @@ import (
 )
 
 var (
+	org = &github.OrganizationSettingsArgs{
+		Name:         pulumi.String("baystateradio"),
+		BillingEmail: pulumi.String("lars@oddbit.com"),
+		Blog:         pulumi.String("https://baystateradio.org/news/"),
+		Description:  pulumi.String("Amateur radio information for Eastern Massachusetts and beyond"),
+		Location:     pulumi.String("Boston, MA"),
+	}
+
 	repositories = map[string]*github.RepositoryArgs{
 		"github-config": {
 			Description: pulumi.String("Manage github configuration for baystateradio organization"),
@@ -47,11 +55,18 @@ func ensureRepository(ctx *pulumi.Context, name string, args *github.RepositoryA
 	return github.NewRepository(ctx, resourceName, args)
 }
 
+func ensureOrganization(ctx *pulumi.Context, org *github.OrganizationSettingsArgs) (*github.OrganizationSettings, error) {
+	resourceName := fmt.Sprintf("github_organization_settings.%s", org.Name)
+	return github.NewOrganizationSettings(ctx, resourceName, org)
+}
+
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
+		if _, err := ensureOrganization(ctx, org); err != nil {
+			return err
+		}
 		for name, args := range repositories {
-			_, err := ensureRepository(ctx, name, args)
-			if err != nil {
+			if _, err := ensureRepository(ctx, name, args); err != nil {
 				return err
 			}
 		}
