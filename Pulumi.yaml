@@ -1,0 +1,7 @@
+name: github-config-go
+description: Github org management
+runtime: go
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: go
