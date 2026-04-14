@@ -20,33 +20,6 @@ type (
 var (
 	defaultBranchName = "main"
 
-	org = &github.OrganizationSettingsArgs{
-		BillingEmail: pulumi.String("lars@oddbit.com"),
-		Blog:         pulumi.String("https://baystateradio.org/news/"),
-		Description:  pulumi.String("Amateur radio information for Eastern Massachusetts and beyond"),
-		Location:     pulumi.String("Boston, MA"),
-	}
-
-	repositories = map[string]*RepositoryConfig{
-		"github-config": {
-			RepositoryArgs: &github.RepositoryArgs{
-				Description: pulumi.String("Manage github configuration for baystateradio organization"),
-				AutoInit:    pulumi.Bool(false),
-			},
-		},
-		"baystateradio.org": {
-			RepositoryArgs: &github.RepositoryArgs{
-				Description: pulumi.String("Sources for baystateradio.org website"),
-				HomepageUrl: pulumi.String("https://baystateradio.org"),
-				AutoInit:    pulumi.Bool(false),
-				Pages: &github.RepositoryPagesArgs{
-					BuildType: pulumi.String("workflow"),
-					Cname:     pulumi.String("baystateradio.org"),
-				},
-			},
-		},
-	}
-
 	nonAlphanumeric = regexp.MustCompile(`[^a-z0-9_-]+`)
 )
 
@@ -113,11 +86,22 @@ func ensureRepository(ctx *pulumi.Context, repositoryName string, repositoryConf
 	return nil
 }
 
-func ensureOrganization(ctx *pulumi.Context, name string, config *github.OrganizationSettingsArgs) error {
+func ensureOrganization(ctx *pulumi.Context, name string, config *github.OrganizationSettingsArgs, members map[string]string) error {
 	config.Name = pulumi.String(name)
 	resourceName := fmt.Sprintf("github_organization_settings.%s", slugify(name))
 	if _, err := github.NewOrganizationSettings(ctx, resourceName, config); err != nil {
 		return err
+	}
+
+	for member, membership := range members {
+		membershipArgs := &github.MembershipArgs{
+			Username: pulumi.String(member),
+			Role:     pulumi.String(membership),
+		}
+		resourceName := fmt.Sprintf("github_organization_membership.%s.%s", slugify(name), slugify(member))
+		if _, err := github.NewMembership(ctx, resourceName, membershipArgs); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -125,7 +109,7 @@ func ensureOrganization(ctx *pulumi.Context, name string, config *github.Organiz
 
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		if err := ensureOrganization(ctx, "baystateradio", org); err != nil {
+		if err := ensureOrganization(ctx, "baystateradio", org, members); err != nil {
 			return err
 		}
 
