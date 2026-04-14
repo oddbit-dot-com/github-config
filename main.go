@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
-	"strings"
 
+	"github.com/larsks/github-config/helpers"
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -22,10 +22,6 @@ var (
 
 	nonAlphanumeric = regexp.MustCompile(`[^a-z0-9_-]+`)
 )
-
-func slugify(v string) string {
-	return nonAlphanumeric.ReplaceAllString(strings.ToLower(v), "_")
-}
 
 func defaultBranchProtectionArgs(repo *github.Repository, pattern string) *github.BranchProtectionArgs {
 	return &github.BranchProtectionArgs{
@@ -61,20 +57,20 @@ func ensureRepository(ctx *pulumi.Context, repositoryName string, repositoryConf
 		repositoryConfig.AutoInit = pulumi.Bool(true)
 	}
 
-	resourceName := fmt.Sprintf("github_repository.%s", slugify(repositoryName))
+	resourceName := fmt.Sprintf("github_repository.%s", helpers.Slugify(repositoryName))
 	repo, err := github.NewRepository(ctx, resourceName, repositoryConfig.RepositoryArgs)
 	if err != nil {
 		return err
 	}
 
 	if repositoryConfig.BranchProtectionArgs == nil {
-		resourceName := fmt.Sprintf("github_branch_protection.%s.%s", slugify(repositoryName), defaultBranchName)
+		resourceName := fmt.Sprintf("github_branch_protection.%s.%s", helpers.Slugify(repositoryName), defaultBranchName)
 		if _, err := github.NewBranchProtection(ctx, resourceName, defaultBranchProtectionArgs(repo, defaultBranchName)); err != nil {
 			return err
 		}
 	} else {
 		for pattern, branchProtectionArgs := range repositoryConfig.BranchProtectionArgs {
-			resourceName := fmt.Sprintf("github_branch_protection.%s.%s", slugify(repositoryName), slugify(pattern))
+			resourceName := fmt.Sprintf("github_branch_protection.%s.%s", helpers.Slugify(repositoryName), helpers.Slugify(pattern))
 			branchProtectionArgs.RepositoryId = repo.ID()
 			branchProtectionArgs.Pattern = pulumi.String(pattern)
 			if _, err := github.NewBranchProtection(ctx, resourceName, branchProtectionArgs); err != nil {
@@ -88,7 +84,7 @@ func ensureRepository(ctx *pulumi.Context, repositoryName string, repositoryConf
 
 func ensureOrganization(ctx *pulumi.Context, name string, config *github.OrganizationSettingsArgs, members map[string]string) error {
 	config.Name = pulumi.String(name)
-	resourceName := fmt.Sprintf("github_organization_settings.%s", slugify(name))
+	resourceName := fmt.Sprintf("github_organization_settings.%s", helpers.Slugify(name))
 	if _, err := github.NewOrganizationSettings(ctx, resourceName, config); err != nil {
 		return err
 	}
@@ -98,7 +94,7 @@ func ensureOrganization(ctx *pulumi.Context, name string, config *github.Organiz
 			Username: pulumi.String(member),
 			Role:     pulumi.String(membership),
 		}
-		resourceName := fmt.Sprintf("github_organization_membership.%s.%s", slugify(name), slugify(member))
+		resourceName := fmt.Sprintf("github_organization_membership.%s.%s", helpers.Slugify(name), helpers.Slugify(member))
 		if _, err := github.NewMembership(ctx, resourceName, membershipArgs); err != nil {
 			return err
 		}
