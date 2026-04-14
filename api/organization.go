@@ -136,14 +136,12 @@ func (o *Organization) ensureRepository(ctx *pulumi.Context, provider *github.Pr
 		return err
 	}
 
-	// Get effective branch protection rules
-	branchRules := o.GetBranchProtectionRules(repoConfig)
+	// Get effective branch protection rules (returns fresh instances with IDs already set)
+	branchRules := o.GetBranchProtectionRules(repo, repoConfig)
 
 	// Create branch protection rules
 	for pattern, args := range branchRules {
-		args.RepositoryId = repo.ID()
-		args.Pattern = pulumi.String(pattern)
-
+		// args already has RepositoryId and Pattern set by GetBranchProtectionRules
 		resourceName := fmt.Sprintf("github_branch_protection.%s.%s",
 			helpers.Slugify(repoName), helpers.Slugify(pattern))
 		if _, err := github.NewBranchProtection(ctx, resourceName, args, pulumi.Provider(provider)); err != nil {
