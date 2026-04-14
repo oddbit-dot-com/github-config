@@ -128,6 +128,9 @@ func main() {
 		if err := ensureOrganization(ctx, "baystateradio", org); err != nil {
 			return err
 		}
+
+		// Sort keys of repository map by name so that we always
+		// process repositories in a deterministic order.
 		names := make([]string, 0, len(repositories))
 		for name := range repositories {
 			names = append(names, name)
