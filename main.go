@@ -56,7 +56,7 @@ func slugify(v string) string {
 
 func defaultBranchProtectionArgs(repo *github.Repository, pattern string) *github.BranchProtectionArgs {
 	return &github.BranchProtectionArgs{
-		RepositoryId:          repo.NodeId,
+		RepositoryId:          repo.ID(),
 		Pattern:               pulumi.String(pattern),
 		RequiredLinearHistory: pulumi.Bool(true),
 		AllowsForcePushes:     pulumi.Bool(false),
@@ -102,7 +102,7 @@ func ensureRepository(ctx *pulumi.Context, repositoryName string, repositoryConf
 	} else {
 		for pattern, branchProtectionArgs := range repositoryConfig.BranchProtectionArgs {
 			resourceName := fmt.Sprintf("github_branch_protection.%s.%s", slugify(repositoryName), slugify(pattern))
-			branchProtectionArgs.RepositoryId = repo.NodeId
+			branchProtectionArgs.RepositoryId = repo.ID()
 			branchProtectionArgs.Pattern = pulumi.String(pattern)
 			if _, err := github.NewBranchProtection(ctx, resourceName, branchProtectionArgs); err != nil {
 				return err
