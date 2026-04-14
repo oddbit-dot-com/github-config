@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/larsks/github-config/helpers"
+	"github.com/oddbit-dot-com/github-config/helpers"
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
