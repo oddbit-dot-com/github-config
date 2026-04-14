@@ -62,6 +62,9 @@ func defaultBranchProtectionArgs(repo *github.Repository, pattern string) *githu
 		AllowsForcePushes:     pulumi.Bool(false),
 		EnforceAdmins:         pulumi.Bool(false),
 		ForcePushBypassers:    pulumi.ToStringArray([]string{"/larsks"}),
+
+		// What looks like an array, but really isn't? This can only ever have a single element; the fact
+		// that it is an array has to do with how Terraform manages optional values.
 		RequiredPullRequestReviews: &github.BranchProtectionRequiredPullRequestReviewArray{
 			github.BranchProtectionRequiredPullRequestReviewArgs{
 				RequiredApprovingReviewCount: pulumi.Int(1),
