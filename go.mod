@@ -1,4 +1,4 @@
-module github-config-go
+module github.com/oddbit-dot-com/github-config
 
 go 1.25.8
 
