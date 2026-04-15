@@ -26,5 +26,11 @@ var Organization = api.Organization{
 				AutoInit:    pulumi.Bool(false),
 			},
 		},
+		{
+			Name: "oddbit-dns",
+			RepositoryArgs: &github.RepositoryArgs{
+				Description: pulumi.String("Manage oddbit.com DNS"),
+			},
+		},
 	},
 }
