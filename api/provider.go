@@ -8,6 +8,11 @@ import (
 type ProviderConfig struct {
 	// GitHub token. If nil, uses default (GITHUB_TOKEN env var or gh CLI)
 	Token *string
+
+	// GitHub owner (organization or user). Used when creating providers.
+	// In org-mode: if nil, falls back to organization name
+	// In standalone mode: required to create a provider from ProviderConfig
+	Owner *string
 }
 
 // ProviderFromEnv creates a provider config that reads from the specified

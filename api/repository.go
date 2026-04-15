@@ -30,6 +30,11 @@ type Repository struct {
 	// If nil, inherits from organization or built-in defaults
 	Labels IssueLabels
 
+	// Optional provider configuration for standalone mode
+	// Allows specifying owner and token without manually creating a provider
+	// If nil or Owner is nil, falls back to explicit Provider or Pulumi default
+	ProviderConfig *ProviderConfig
+
 	// Optional provider for standalone mode
 	// If nil, uses Pulumi's default provider
 	Provider *github.Provider
@@ -61,6 +66,18 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 
 	// Set repository name
 	r.RepositoryArgs.Name = pulumi.String(r.Name)
+
+	// Create provider from ProviderConfig if in standalone mode and config provided
+	if r.organization == nil && r.Provider == nil && r.ProviderConfig != nil {
+		provider, err := r.createStandaloneProvider(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create provider from config for %s: %w", r.Name, err)
+		}
+		// Only set if provider was created (not nil)
+		if provider != nil {
+			r.Provider = provider
+		}
+	}
 
 	// Get provider to use
 	provider := r.getProvider()
@@ -120,6 +137,29 @@ func (r *Repository) getProvider() *github.Provider {
 	}
 	// Standalone mode: use explicit provider or nil for default
 	return r.Provider
+}
+
+// createStandaloneProvider creates a provider from ProviderConfig when in standalone mode
+// Returns nil if ProviderConfig is nil or Owner is not set
+func (r *Repository) createStandaloneProvider(ctx *pulumi.Context) (*github.Provider, error) {
+	// Only create provider if ProviderConfig exists and has an Owner
+	if r.ProviderConfig == nil || r.ProviderConfig.Owner == nil {
+		return nil, nil
+	}
+
+	owner := *r.ProviderConfig.Owner
+	providerArgs := &github.ProviderArgs{
+		Owner: pulumi.String(owner),
+	}
+
+	// Set token if provided
+	if r.ProviderConfig.Token != nil {
+		providerArgs.Token = pulumi.String(*r.ProviderConfig.Token)
+	}
+
+	resourceName := fmt.Sprintf("github-provider.%s.%s",
+		helpers.Slugify(owner), helpers.Slugify(r.Name))
+	return github.NewProvider(ctx, resourceName, providerArgs, pulumi.IgnoreChanges([]string{"token"}))
 }
 
 // getBranchProtectionRules returns the effective branch protection rules

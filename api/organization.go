@@ -72,8 +72,14 @@ func (o *Organization) Ensure(ctx *pulumi.Context) error {
 
 // createProvider creates a GitHub provider for this organization
 func (o *Organization) createProvider(ctx *pulumi.Context) (*github.Provider, error) {
+	// Determine owner: use ProviderConfig.Owner if provided, otherwise o.Name
+	owner := o.Name
+	if o.ProviderConfig != nil && o.ProviderConfig.Owner != nil {
+		owner = *o.ProviderConfig.Owner
+	}
+
 	providerArgs := &github.ProviderArgs{
-		Owner: pulumi.String(o.Name),
+		Owner: pulumi.String(owner),
 	}
 
 	// Set token if provided
@@ -81,7 +87,7 @@ func (o *Organization) createProvider(ctx *pulumi.Context) (*github.Provider, er
 		providerArgs.Token = pulumi.String(*o.ProviderConfig.Token)
 	}
 
-	resourceName := fmt.Sprintf("github-provider.%s", helpers.Slugify(o.Name))
+	resourceName := fmt.Sprintf("github-provider.%s", helpers.Slugify(owner))
 	return github.NewProvider(ctx, resourceName, providerArgs, pulumi.IgnoreChanges([]string{"token"}))
 }
 
