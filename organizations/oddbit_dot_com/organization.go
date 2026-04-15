@@ -27,6 +27,12 @@ var Organization = api.Organization{
 			},
 		},
 		{
+			Name: "oddbit-auth",
+			RepositoryArgs: &github.RepositoryArgs{
+				Description: pulumi.String("Oddbit.com authentication server (Keycloak)"),
+			},
+		},
+		{
 			Name: "oddbit-dns",
 			RepositoryArgs: &github.RepositoryArgs{
 				Description: pulumi.String("Manage oddbit.com DNS"),
