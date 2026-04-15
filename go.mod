@@ -1,6 +1,6 @@
 module github.com/oddbit-dot-com/github-config
 
-go 1.25.8
+go 1.26.0
 
 require (
 	github.com/pulumi/pulumi-github/sdk/v6 v6.12.2
