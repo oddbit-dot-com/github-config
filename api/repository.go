@@ -44,6 +44,10 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 		r.HasDiscussions = pulumi.Bool(false)
 	}
 
+	if r.HasIssues == nil {
+		r.HasIssues = pulumi.Bool(true)
+	}
+
 	if r.AutoInit == nil {
 		r.AutoInit = pulumi.Bool(true)
 	}
