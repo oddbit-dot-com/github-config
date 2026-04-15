@@ -35,12 +35,6 @@ var Organization = api.Organization{
 	},
 
 	Repositories: api.Repositories{
-		"github-config": {
-			RepositoryArgs: &github.RepositoryArgs{
-				Description: pulumi.String("Manage github configuration for baystateradio organization"),
-				AutoInit:    pulumi.Bool(false),
-			},
-		},
 		"baystateradio.org": {
 			RepositoryArgs: &github.RepositoryArgs{
 				Description: pulumi.String("Sources for baystateradio.org website"),
