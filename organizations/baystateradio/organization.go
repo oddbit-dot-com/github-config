@@ -22,8 +22,9 @@ var Organization = api.Organization{
 		"larsks": "admin",
 	},
 
-	Repositories: api.Repositories{
-		"baystateradio.org": {
+	Repositories: []*api.Repository{
+		{
+			Name: "baystateradio.org",
 			RepositoryArgs: &github.RepositoryArgs{
 				Description: pulumi.String("Sources for baystateradio.org website"),
 				HomepageUrl: pulumi.String("https://baystateradio.org"),

@@ -27,7 +27,10 @@ type Organization struct {
 	DefaultBranchProtection *github.BranchProtectionArgs
 
 	// Repository configurations
-	Repositories Repositories
+	Repositories []*Repository
+
+	// Cached provider instance (created in Ensure)
+	provider *github.Provider
 }
 
 // Members maps usernames to roles
@@ -41,6 +44,9 @@ func (o *Organization) Ensure(ctx *pulumi.Context) error {
 		return fmt.Errorf("failed to create provider for %s: %w", o.Name, err)
 	}
 
+	// Store provider for repositories to use
+	o.provider = provider
+
 	// Provision organization settings
 	if err := o.ensureSettings(ctx, provider); err != nil {
 		return fmt.Errorf("failed to ensure settings for %s: %w", o.Name, err)
@@ -52,7 +58,7 @@ func (o *Organization) Ensure(ctx *pulumi.Context) error {
 	}
 
 	// Provision repositories
-	if err := o.ensureRepositories(ctx, provider); err != nil {
+	if err := o.ensureRepositories(ctx); err != nil {
 		return fmt.Errorf("failed to ensure repositories for %s: %w", o.Name, err)
 	}
 
@@ -103,51 +109,14 @@ func (o *Organization) ensureMembers(ctx *pulumi.Context, provider *github.Provi
 }
 
 // ensureRepositories provisions repositories and their branch protection rules
-func (o *Organization) ensureRepositories(ctx *pulumi.Context, provider *github.Provider) error {
-	for repoName, repoConfig := range o.Repositories {
-		if err := o.ensureRepository(ctx, provider, repoName, repoConfig); err != nil {
+func (o *Organization) ensureRepositories(ctx *pulumi.Context) error {
+	for _, repo := range o.Repositories {
+		// Set organization reference for provider and defaults inheritance
+		repo.organization = o
+
+		if err := repo.Ensure(ctx); err != nil {
 			return err
 		}
 	}
-	return nil
-}
-
-// ensureRepository provisions a single repository and its branch protection
-func (o *Organization) ensureRepository(ctx *pulumi.Context, provider *github.Provider, repoName string, repoConfig *RepositoryConfig) error {
-	// Set repository name and defaults
-	repoConfig.Name = pulumi.String(repoName)
-
-	if repoConfig.HasWiki == nil {
-		repoConfig.HasWiki = pulumi.Bool(false)
-	}
-
-	if repoConfig.HasDiscussions == nil {
-		repoConfig.HasDiscussions = pulumi.Bool(false)
-	}
-
-	if repoConfig.AutoInit == nil {
-		repoConfig.AutoInit = pulumi.Bool(true)
-	}
-
-	// Create repository
-	resourceName := fmt.Sprintf("github_repository.%s", helpers.Slugify(repoName))
-	repo, err := github.NewRepository(ctx, resourceName, repoConfig.RepositoryArgs, pulumi.Provider(provider))
-	if err != nil {
-		return err
-	}
-
-	// Get effective branch protection rules (returns fresh instances with IDs already set)
-	branchRules := o.GetBranchProtectionRules(repo, repoConfig)
-
-	// Create branch protection rules
-	for pattern, args := range branchRules {
-		// args already has RepositoryId and Pattern set by GetBranchProtectionRules
-		resourceName := fmt.Sprintf("github_branch_protection.%s.%s",
-			helpers.Slugify(repoName), helpers.Slugify(pattern))
-		if _, err := github.NewBranchProtection(ctx, resourceName, args, pulumi.Provider(provider)); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
