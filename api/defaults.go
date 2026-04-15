@@ -39,31 +39,3 @@ func copyBranchProtectionArgs(template *github.BranchProtectionArgs, repoID pulu
 		RequiredPullRequestReviews: template.RequiredPullRequestReviews,
 	}
 }
-
-// GetBranchProtectionRules returns the effective branch protection rules for a repository
-// using the three-tier precedence system: repo-specific > org defaults > built-in defaults
-// Returns fresh instances with RepositoryId and Pattern already set to prevent shared state mutation
-func (o *Organization) GetBranchProtectionRules(repo *github.Repository, repoConfig *RepositoryConfig) BranchProtectionRules {
-	var template *github.BranchProtectionArgs
-
-	// Determine which template to use (repo-specific > org default > built-in)
-	if repoConfig.BranchProtectionRules != nil {
-		// Repo has explicit rules - copy each one
-		result := make(BranchProtectionRules)
-		for pattern, args := range repoConfig.BranchProtectionRules {
-			result[pattern] = copyBranchProtectionArgs(args, repo.ID(), pattern)
-		}
-		return result
-	}
-
-	if o.DefaultBranchProtection != nil {
-		template = o.DefaultBranchProtection
-	} else {
-		template = builtInDefaultBranchProtection()
-	}
-
-	// Return fresh instance for default branch
-	return BranchProtectionRules{
-		defaultBranchName: copyBranchProtectionArgs(template, repo.ID(), defaultBranchName),
-	}
-}

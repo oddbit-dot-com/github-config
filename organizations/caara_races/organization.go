@@ -19,8 +19,9 @@ var Organization = api.Organization{
 		"larsks": "admin",
 	},
 
-	Repositories: api.Repositories{
-		"caara-races-website": {
+	Repositories: []*api.Repository{
+		{
+			Name: "caara-races-website",
 			RepositoryArgs: &github.RepositoryArgs{
 				Description: pulumi.String("Proposed website for CAARA race and event support"),
 				AutoInit:    pulumi.Bool(false),
@@ -30,7 +31,8 @@ var Organization = api.Organization{
 				},
 			},
 		},
-		"members-only": {
+		{
+			Name: "members-only",
 			RepositoryArgs: &github.RepositoryArgs{
 				AutoInit:   pulumi.Bool(false),
 				Visibility: pulumi.String("private"),
