@@ -170,7 +170,7 @@ func (r *Repository) getIssueLabels(repo *github.Repository) IssueLabels {
 
 	// Step 3: If no labels specified anywhere, use built-in defaults
 	if len(result) == 0 {
-		for name, args := range builtInDefaultIssueLabels() {
+		for name, args := range DefaultIssueLabels() {
 			result[name] = copyIssueLabelArgs(args, name)
 		}
 	}

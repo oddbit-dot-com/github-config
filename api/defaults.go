@@ -40,10 +40,10 @@ func copyBranchProtectionArgs(template *github.BranchProtectionArgs, repoID pulu
 	}
 }
 
-// builtInDefaultIssueLabels returns GitHub's default issue labels
-// These are applied only when neither organization nor repository specifies labels
+// DefaultIssueLabels returns GitHub's default issue labels
+// These can be used as a base and merged with custom labels using MergeLabels()
 // Note: Name field is omitted - it will default to the map key
-func builtInDefaultIssueLabels() IssueLabels {
+func DefaultIssueLabels() IssueLabels {
 	return IssueLabels{
 		"bug": &github.IssueLabelsLabelArgs{
 			Color:       pulumi.String("d73a4a"),
@@ -99,4 +99,29 @@ func copyIssueLabelArgs(template *github.IssueLabelsLabelArgs, labelName string)
 		Color:       template.Color,
 		Description: template.Description,
 	}
+}
+
+// MergeLabels merges multiple IssueLabels maps into a single map.
+// Later maps override earlier maps when label names conflict.
+// This is useful for combining default labels with custom labels.
+//
+// Example:
+//
+//	Labels: api.MergeLabels(
+//	    api.DefaultIssueLabels(),
+//	    api.IssueLabels{
+//	        "backend": &github.IssueLabelsLabelArgs{
+//	            Color:       pulumi.String("0000ff"),
+//	            Description: pulumi.String("Backend code"),
+//	        },
+//	    },
+//	)
+func MergeLabels(maps ...IssueLabels) IssueLabels {
+	result := make(IssueLabels)
+	for _, m := range maps {
+		for k, v := range m {
+			result[k] = v
+		}
+	}
+	return result
 }
