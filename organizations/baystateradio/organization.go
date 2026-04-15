@@ -22,18 +22,6 @@ var Organization = api.Organization{
 		"larsks": "admin",
 	},
 
-	DefaultBranchProtection: &github.BranchProtectionArgs{
-		RequiredLinearHistory: pulumi.Bool(true),
-		AllowsForcePushes:     pulumi.Bool(false),
-		EnforceAdmins:         pulumi.Bool(false),
-		ForcePushBypassers:    pulumi.ToStringArray([]string{"/larsks"}),
-		RequiredPullRequestReviews: &github.BranchProtectionRequiredPullRequestReviewArray{
-			github.BranchProtectionRequiredPullRequestReviewArgs{
-				RequiredApprovingReviewCount: pulumi.Int(1),
-			},
-		},
-	},
-
 	Repositories: api.Repositories{
 		"baystateradio.org": {
 			RepositoryArgs: &github.RepositoryArgs{
