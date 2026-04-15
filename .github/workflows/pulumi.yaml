@@ -35,7 +35,7 @@ jobs:
         with:
           command: up
           stack-name: prod
-          cloud-url: s3://tfstate.oddbit/baystateradio
+          cloud-url: s3://tfstate.oddbit
         env:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
