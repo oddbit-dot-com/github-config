@@ -21,8 +21,8 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ secrets.CONFIG_APP_ID }}
-          private-key: ${{ secrets.CONFIG_APP_SECRET }}
+          client-id: ${{ secrets.CONFIG_CLIENT_ID }}
+          private-key: ${{ secrets.CONFIG_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6
