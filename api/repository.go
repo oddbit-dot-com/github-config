@@ -48,21 +48,7 @@ type Repository struct {
 // Ensure provisions the repository and its branch protection rules
 func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	// Apply repository defaults
-	if r.HasWiki == nil {
-		r.HasWiki = pulumi.Bool(false)
-	}
-
-	if r.HasDiscussions == nil {
-		r.HasDiscussions = pulumi.Bool(false)
-	}
-
-	if r.HasIssues == nil {
-		r.HasIssues = pulumi.Bool(true)
-	}
-
-	if r.AutoInit == nil {
-		r.AutoInit = pulumi.Bool(true)
-	}
+	applyRepositoryDefaults(r.RepositoryArgs)
 
 	// Set repository name
 	r.RepositoryArgs.Name = pulumi.String(r.Name)
