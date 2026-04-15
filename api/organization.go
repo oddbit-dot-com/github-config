@@ -72,23 +72,7 @@ func (o *Organization) Ensure(ctx *pulumi.Context) error {
 
 // createProvider creates a GitHub provider for this organization
 func (o *Organization) createProvider(ctx *pulumi.Context) (*github.Provider, error) {
-	// Determine owner: use ProviderConfig.Owner if provided, otherwise o.Name
-	owner := o.Name
-	if o.ProviderConfig != nil && o.ProviderConfig.Owner != nil {
-		owner = *o.ProviderConfig.Owner
-	}
-
-	providerArgs := &github.ProviderArgs{
-		Owner: pulumi.String(owner),
-	}
-
-	// Set token if provided
-	if o.ProviderConfig != nil && o.ProviderConfig.Token != nil {
-		providerArgs.Token = pulumi.String(*o.ProviderConfig.Token)
-	}
-
-	resourceName := fmt.Sprintf("github-provider.%s", helpers.Slugify(owner))
-	return github.NewProvider(ctx, resourceName, providerArgs, pulumi.IgnoreChanges([]string{"token"}))
+	return CreateGitHubProvider(ctx, o.ProviderConfig, o.Name, "")
 }
 
 // ensureSettings provisions organization settings
@@ -100,7 +84,10 @@ func (o *Organization) ensureSettings(ctx *pulumi.Context, provider *github.Prov
 	o.Settings.Name = pulumi.String(o.Name)
 	resourceName := fmt.Sprintf("github_organization_settings.%s", helpers.Slugify(o.Name))
 	_, err := github.NewOrganizationSettings(ctx, resourceName, o.Settings, pulumi.Provider(provider))
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to create organization settings for %s: %w", o.Name, err)
+	}
+	return nil
 }
 
 // ensureMembers provisions organization memberships
@@ -113,7 +100,7 @@ func (o *Organization) ensureMembers(ctx *pulumi.Context, provider *github.Provi
 		resourceName := fmt.Sprintf("github_organization_membership.%s.%s",
 			helpers.Slugify(o.Name), helpers.Slugify(username))
 		if _, err := github.NewMembership(ctx, resourceName, membershipArgs, pulumi.Provider(provider)); err != nil {
-			return err
+			return fmt.Errorf("failed to create membership for %s/%s: %w", o.Name, username, err)
 		}
 	}
 	return nil
@@ -126,7 +113,7 @@ func (o *Organization) ensureRepositories(ctx *pulumi.Context) error {
 		repo.organization = o
 
 		if err := repo.Ensure(ctx); err != nil {
-			return err
+			return fmt.Errorf("failed to ensure repository %s/%s: %w", o.Name, repo.Name, err)
 		}
 	}
 	return nil
