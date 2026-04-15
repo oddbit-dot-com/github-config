@@ -8,6 +8,12 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// BranchProtectionRules maps branch patterns to protection configurations
+type BranchProtectionRules map[string]*github.BranchProtectionArgs
+
+// IssueLabels maps label names to label configurations
+type IssueLabels map[string]*github.IssueLabelsLabelArgs
+
 // Repository represents a GitHub repository that implements the Ensurable interface
 type Repository struct {
 	// Name of the repository
@@ -20,6 +26,10 @@ type Repository struct {
 	// If nil, defaults apply based on context
 	BranchProtectionRules BranchProtectionRules
 
+	// Issue labels for this repository
+	// If nil, inherits from organization or built-in defaults
+	Labels IssueLabels
+
 	// Optional provider for standalone mode
 	// If nil, uses Pulumi's default provider
 	Provider *github.Provider
@@ -29,9 +39,6 @@ type Repository struct {
 	// If nil, repository is in standalone mode
 	organization *Organization
 }
-
-// BranchProtectionRules maps branch patterns to protection configurations
-type BranchProtectionRules map[string]*github.BranchProtectionArgs
 
 // Ensure provisions the repository and its branch protection rules
 func (r *Repository) Ensure(ctx *pulumi.Context) error {
@@ -83,6 +90,25 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 		}
 	}
 
+	// Get effective issue labels
+	issueLabels := r.getIssueLabels(repo)
+
+	// Convert map to array for IssueLabels resource
+	labelArray := make(github.IssueLabelsLabelArray, 0, len(issueLabels))
+	for _, labelArgs := range issueLabels {
+		labelArray = append(labelArray, labelArgs)
+	}
+
+	// Create single IssueLabels resource for all labels
+	resourceName = fmt.Sprintf("github_issue_labels.%s", helpers.Slugify(r.Name))
+	_, err = github.NewIssueLabels(ctx, resourceName, &github.IssueLabelsArgs{
+		Repository: repo.Name,
+		Labels:     labelArray,
+	}, opts...)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -119,4 +145,35 @@ func (r *Repository) getBranchProtectionRules(repo *github.Repository) BranchPro
 	return BranchProtectionRules{
 		defaultBranchName: copyBranchProtectionArgs(template, repo.ID(), defaultBranchName),
 	}
+}
+
+// getIssueLabels returns the effective issue labels using union semantics:
+// - Repository labels are merged with organization labels
+// - If neither org nor repo specifies labels, use GitHub's built-in defaults
+// - Repository labels override organization labels with the same name
+func (r *Repository) getIssueLabels(repo *github.Repository) IssueLabels {
+	result := make(IssueLabels)
+
+	// Step 1: Add organization labels (if any)
+	if r.organization != nil && r.organization.Labels != nil && len(r.organization.Labels) > 0 {
+		for name, args := range r.organization.Labels {
+			result[name] = copyIssueLabelArgs(args, name)
+		}
+	}
+
+	// Step 2: Add/override with repository-specific labels (if any)
+	if r.Labels != nil && len(r.Labels) > 0 {
+		for name, args := range r.Labels {
+			result[name] = copyIssueLabelArgs(args, name)
+		}
+	}
+
+	// Step 3: If no labels specified anywhere, use built-in defaults
+	if len(result) == 0 {
+		for name, args := range builtInDefaultIssueLabels() {
+			result[name] = copyIssueLabelArgs(args, name)
+		}
+	}
+
+	return result
 }

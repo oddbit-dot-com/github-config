@@ -39,3 +39,64 @@ func copyBranchProtectionArgs(template *github.BranchProtectionArgs, repoID pulu
 		RequiredPullRequestReviews: template.RequiredPullRequestReviews,
 	}
 }
+
+// builtInDefaultIssueLabels returns GitHub's default issue labels
+// These are applied only when neither organization nor repository specifies labels
+// Note: Name field is omitted - it will default to the map key
+func builtInDefaultIssueLabels() IssueLabels {
+	return IssueLabels{
+		"bug": &github.IssueLabelsLabelArgs{
+			Color:       pulumi.String("d73a4a"),
+			Description: pulumi.String("Something isn't working"),
+		},
+		"documentation": &github.IssueLabelsLabelArgs{
+			Color:       pulumi.String("0075ca"),
+			Description: pulumi.String("Improvements or additions to documentation"),
+		},
+		"duplicate": &github.IssueLabelsLabelArgs{
+			Color:       pulumi.String("cfd3d7"),
+			Description: pulumi.String("This issue or pull request already exists"),
+		},
+		"enhancement": &github.IssueLabelsLabelArgs{
+			Color:       pulumi.String("a2eeef"),
+			Description: pulumi.String("New feature or request"),
+		},
+		"good first issue": &github.IssueLabelsLabelArgs{
+			Color:       pulumi.String("7057ff"),
+			Description: pulumi.String("Good for newcomers"),
+		},
+		"help wanted": &github.IssueLabelsLabelArgs{
+			Color:       pulumi.String("008672"),
+			Description: pulumi.String("Extra attention is needed"),
+		},
+		"invalid": &github.IssueLabelsLabelArgs{
+			Color:       pulumi.String("e4e669"),
+			Description: pulumi.String("This doesn't seem right"),
+		},
+		"question": &github.IssueLabelsLabelArgs{
+			Color:       pulumi.String("d876e3"),
+			Description: pulumi.String("Further information is requested"),
+		},
+		"wontfix": &github.IssueLabelsLabelArgs{
+			Color:       pulumi.String("ffffff"),
+			Description: pulumi.String("This will not be worked on"),
+		},
+	}
+}
+
+// copyIssueLabelArgs creates a fresh IssueLabelsLabelArgs instance,
+// copying all fields from the template. If the template has a Name set,
+// it uses that; otherwise it falls back to the provided labelName.
+func copyIssueLabelArgs(template *github.IssueLabelsLabelArgs, labelName string) *github.IssueLabelsLabelArgs {
+	// Use template Name if provided, otherwise use labelName from map key
+	name := template.Name
+	if name == nil {
+		name = pulumi.String(labelName)
+	}
+
+	return &github.IssueLabelsLabelArgs{
+		Name:        name,
+		Color:       template.Color,
+		Description: template.Description,
+	}
+}

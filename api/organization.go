@@ -26,6 +26,11 @@ type Organization struct {
 	// unless they specify their own BranchProtectionRules
 	DefaultBranchProtection *github.BranchProtectionArgs
 
+	// Issue labels applied to all repositories in this organization
+	// Repositories can add additional labels via their own Labels field (union behavior)
+	// If nil, repositories use built-in GitHub defaults (unless they specify their own Labels)
+	Labels IssueLabels
+
 	// Repository configurations
 	Repositories []*Repository
 
