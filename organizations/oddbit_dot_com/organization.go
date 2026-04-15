@@ -18,8 +18,9 @@ var Organization = api.Organization{
 		"larsks": "admin",
 	},
 
-	Repositories: api.Repositories{
-		"github-config": {
+	Repositories: []*api.Repository{
+		{
+			Name: "github-config",
 			RepositoryArgs: &github.RepositoryArgs{
 				Description: pulumi.String("Manage github configuration for oddbit.com organizations"),
 				AutoInit:    pulumi.Bool(false),
