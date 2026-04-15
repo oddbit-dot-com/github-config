@@ -71,7 +71,7 @@ func (o *Organization) createProvider(ctx *pulumi.Context) (*github.Provider, er
 	}
 
 	resourceName := fmt.Sprintf("github-provider.%s", helpers.Slugify(o.Name))
-	return github.NewProvider(ctx, resourceName, providerArgs)
+	return github.NewProvider(ctx, resourceName, providerArgs, pulumi.IgnoreChanges([]string{"token"}))
 }
 
 // ensureSettings provisions organization settings
