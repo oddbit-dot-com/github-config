@@ -30,5 +30,12 @@ var Organization = api.Organization{
 				},
 			},
 		},
+		"members-only": {
+			RepositoryArgs: &github.RepositoryArgs{
+				AutoInit:   pulumi.Bool(false),
+				Visibility: pulumi.String("private"),
+			},
+			BranchProtectionRules: api.BranchProtectionRules{},
+		},
 	},
 }
