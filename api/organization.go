@@ -5,6 +5,7 @@ import (
 
 	"github.com/oddbit-dot-com/github-config/helpers"
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
+	vault "github.com/pulumi/pulumi-vault/sdk/v6/go/vault"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -39,6 +40,10 @@ type Organization struct {
 
 	// Cached provider instance (created in Ensure)
 	provider *github.Provider
+
+	VaultProviderConfig *VaultProviderConfig
+	Secrets             OrgActionsSecrets
+	vaultProvider       *vault.Provider
 }
 
 // Members maps usernames to roles
@@ -61,6 +66,16 @@ func (o *Organization) Ensure(ctx *pulumi.Context) error {
 
 	// Store provider for repositories to use
 	o.provider = provider
+
+	vaultProvider, err := CreateVaultProvider(ctx, o.VaultProviderConfig, o.Name)
+	if err != nil {
+		return fmt.Errorf("failed to create vault provider for %s: %w", o.Name, err)
+	}
+	o.vaultProvider = vaultProvider
+
+	if err := o.ensureOrgSecrets(ctx, provider); err != nil {
+		return fmt.Errorf("failed to ensure org secrets for %s: %w", o.Name, err)
+	}
 
 	// Provision organization settings
 	if err := o.ensureSettings(ctx, provider); err != nil {
