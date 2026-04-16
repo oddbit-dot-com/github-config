@@ -60,9 +60,18 @@ func CreateGitHubProvider(
 		Owner: pulumi.String(owner),
 	}
 
-	// Set token if provided
+	// Set token if provided explicitly (from per-org env var)
 	if config != nil && config.Token != nil {
 		providerArgs.Token = pulumi.String(*config.Token)
+	} else {
+		// Temporarily hide GITHUB_TOKEN so the SDK doesn't auto-resolve it
+		// into provider inputs (which would store it in state and cause diffs
+		// between environments). The provider plugin reads GITHUB_TOKEN from
+		// its own process environment at runtime via Terraform's DefaultFunc.
+		if origToken, hasToken := os.LookupEnv("GITHUB_TOKEN"); hasToken {
+			os.Unsetenv("GITHUB_TOKEN")
+			defer os.Setenv("GITHUB_TOKEN", origToken)
+		}
 	}
 
 	// Build resource name
