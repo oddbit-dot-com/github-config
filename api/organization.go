@@ -22,6 +22,9 @@ type Organization struct {
 	// Organization members (username -> role mapping)
 	Members Members
 
+	// Teams
+	Teams Teams
+
 	// Optional default branch protection applied to all repositories
 	// unless they specify their own BranchProtectionRules
 	DefaultBranchProtection *github.BranchProtectionArgs
@@ -40,6 +43,13 @@ type Organization struct {
 
 // Members maps usernames to roles
 type Members map[string]string
+
+type Teams map[string]Team
+
+type Team struct {
+	Settings *github.TeamArgs
+	Members  map[string]string
+}
 
 // Ensure provisions all resources for this organization
 func (o *Organization) Ensure(ctx *pulumi.Context) error {
@@ -60,6 +70,11 @@ func (o *Organization) Ensure(ctx *pulumi.Context) error {
 	// Provision members
 	if err := o.ensureMembers(ctx, provider); err != nil {
 		return fmt.Errorf("failed to ensure members for %s: %w", o.Name, err)
+	}
+
+	// Provision teams
+	if err := o.ensureTeams(ctx, provider); err != nil {
+		return fmt.Errorf("failed to ensure teams for %s: %w", o.Name, err)
 	}
 
 	// Provision repositories

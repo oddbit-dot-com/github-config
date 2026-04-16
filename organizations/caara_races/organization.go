@@ -40,4 +40,15 @@ var Organization = api.Organization{
 			BranchProtectionRules: api.BranchProtectionRules{},
 		},
 	},
+
+	Teams: api.Teams{
+		"webworkers": api.Team{
+			Settings: &github.TeamArgs{
+				Description: pulumi.String("Website maintainers"),
+			},
+			Members: map[string]string{
+				"larsks": "maintainer",
+			},
+		},
+	},
 }
