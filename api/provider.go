@@ -71,5 +71,5 @@ func CreateGitHubProvider(
 		resourceName = fmt.Sprintf("%s.%s", resourceName, helpers.Slugify(resourceNameSuffix))
 	}
 
-	return github.NewProvider(ctx, resourceName, providerArgs, pulumi.IgnoreChanges([]string{"token"}))
+	return github.NewProvider(ctx, resourceName, providerArgs) //, pulumi.IgnoreChanges([]string{"token"}))
 }
