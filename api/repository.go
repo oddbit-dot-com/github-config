@@ -93,7 +93,13 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	for pattern, args := range branchRules {
 		resourceName := fmt.Sprintf("github_branch_protection.%s.%s",
 			helpers.Slugify(r.Name), helpers.Slugify(pattern))
-		if _, err := github.NewBranchProtection(ctx, resourceName, args, opts...); err != nil {
+
+		// By default pulumi attempts to create before delete when performing a replace
+		// operation, but you can't have more than one branch protection rule for the
+		// same branch so the initial create fails. Set DeleteBeforeReplace to reverse
+		// the order of operation.
+		bpOpts := append(opts, pulumi.DeleteBeforeReplace(true))
+		if _, err := github.NewBranchProtection(ctx, resourceName, args, bpOpts...); err != nil {
 			return fmt.Errorf("failed to create branch protection for %s (pattern %s): %w", r.Name, pattern, err)
 		}
 	}
