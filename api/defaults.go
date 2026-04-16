@@ -7,6 +7,22 @@ import (
 
 const defaultBranchName = "main"
 
+// applyRepositoryDefaults sets nil repository fields to their default values
+func applyRepositoryDefaults(args *github.RepositoryArgs) {
+	if args.HasWiki == nil {
+		args.HasWiki = pulumi.Bool(false)
+	}
+	if args.HasDiscussions == nil {
+		args.HasDiscussions = pulumi.Bool(false)
+	}
+	if args.HasIssues == nil {
+		args.HasIssues = pulumi.Bool(true)
+	}
+	if args.AutoInit == nil {
+		args.AutoInit = pulumi.Bool(true)
+	}
+}
+
 // builtInDefaultBranchProtection returns the default branch protection configuration
 // matching the current behavior in the codebase
 func builtInDefaultBranchProtection() *github.BranchProtectionArgs {
