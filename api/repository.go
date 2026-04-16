@@ -8,10 +8,15 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// BranchProtectionRules maps branch patterns to protection configurations
+// BranchProtectionRules maps branch name patterns to their protection configurations.
+// Keys are glob patterns (e.g., "main", "release/*"), values are Pulumi GitHub branch protection args.
+// The rules follow a three-tier precedence: repository-specific > organization defaults > built-in defaults.
 type BranchProtectionRules map[string]*github.BranchProtectionArgs
 
-// IssueLabels maps label names to label configurations
+// IssueLabels maps label names to their configurations.
+// Keys are label names, values are Pulumi GitHub issue label args.
+// Used for both repository-specific and organization-wide label definitions.
+// Labels can be merged using MergeLabels to combine org-level and repo-level labels.
 type IssueLabels map[string]*github.IssueLabelsLabelArgs
 
 // Repository represents a GitHub repository that implements the Ensurable interface
@@ -78,7 +83,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	resourceName := fmt.Sprintf("github_repository.%s", helpers.Slugify(r.Name))
 	repo, err := github.NewRepository(ctx, resourceName, r.RepositoryArgs, opts...)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create repository %s: %w", r.Name, err)
 	}
 
 	// Get effective branch protection rules
@@ -89,7 +94,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 		resourceName := fmt.Sprintf("github_branch_protection.%s.%s",
 			helpers.Slugify(r.Name), helpers.Slugify(pattern))
 		if _, err := github.NewBranchProtection(ctx, resourceName, args, opts...); err != nil {
-			return err
+			return fmt.Errorf("failed to create branch protection for %s (pattern %s): %w", r.Name, pattern, err)
 		}
 	}
 
@@ -109,7 +114,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 		Labels:     labelArray,
 	}, opts...)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create issue labels for %s: %w", r.Name, err)
 	}
 
 	return nil
@@ -128,24 +133,7 @@ func (r *Repository) getProvider() *github.Provider {
 // createStandaloneProvider creates a provider from ProviderConfig when in standalone mode
 // Returns nil if ProviderConfig is nil or Owner is not set
 func (r *Repository) createStandaloneProvider(ctx *pulumi.Context) (*github.Provider, error) {
-	// Only create provider if ProviderConfig exists and has an Owner
-	if r.ProviderConfig == nil || r.ProviderConfig.Owner == nil {
-		return nil, nil
-	}
-
-	owner := *r.ProviderConfig.Owner
-	providerArgs := &github.ProviderArgs{
-		Owner: pulumi.String(owner),
-	}
-
-	// Set token if provided
-	if r.ProviderConfig.Token != nil {
-		providerArgs.Token = pulumi.String(*r.ProviderConfig.Token)
-	}
-
-	resourceName := fmt.Sprintf("github-provider.%s.%s",
-		helpers.Slugify(owner), helpers.Slugify(r.Name))
-	return github.NewProvider(ctx, resourceName, providerArgs, pulumi.IgnoreChanges([]string{"token"}))
+	return CreateGitHubProvider(ctx, r.ProviderConfig, "", r.Name)
 }
 
 // getBranchProtectionRules returns the effective branch protection rules
