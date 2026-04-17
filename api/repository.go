@@ -44,6 +44,16 @@ type Repository struct {
 	// If nil, uses Pulumi's default provider
 	Provider *github.Provider
 
+	// Teams maps GitHub team slugs to permission levels for this repository.
+	// Valid permissions: "pull", "triage", "push", "maintain", "admin"
+	// The Pulumi GitHub provider accepts either a team ID or team slug in TeamId,
+	// so slugs can be used directly.
+	Teams map[string]string
+
+	// Collaborators maps GitHub usernames to permission levels for this repository.
+	// Valid permissions: "pull", "triage", "push", "maintain", "admin"
+	Collaborators map[string]string
+
 	// Parent organization for org-mode
 	// Used for defaults resolution and provider inheritance
 	// If nil, repository is in standalone mode
@@ -104,6 +114,14 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 		}
 	}
 
+	if err := r.ensureTeamAccess(ctx, repo, opts); err != nil {
+		return err
+	}
+
+	if err := r.ensureCollaborators(ctx, repo, opts); err != nil {
+		return err
+	}
+
 	// Get effective issue labels
 	issueLabels := r.getIssueLabels(repo)
 
@@ -123,6 +141,38 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 		return fmt.Errorf("failed to create issue labels for %s: %w", r.Name, err)
 	}
 
+	return nil
+}
+
+func (r *Repository) ensureTeamAccess(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
+	for teamSlug, permission := range r.Teams {
+		resourceName := fmt.Sprintf("github_team_repository.%s.%s",
+			helpers.Slugify(r.Name), helpers.Slugify(teamSlug))
+		_, err := github.NewTeamRepository(ctx, resourceName, &github.TeamRepositoryArgs{
+			TeamId:     pulumi.String(teamSlug),
+			Repository: repo.Name,
+			Permission: pulumi.String(permission),
+		}, opts...)
+		if err != nil {
+			return fmt.Errorf("failed to grant team %s access to %s: %w", teamSlug, r.Name, err)
+		}
+	}
+	return nil
+}
+
+func (r *Repository) ensureCollaborators(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
+	for username, permission := range r.Collaborators {
+		resourceName := fmt.Sprintf("github_repository_collaborator.%s.%s",
+			helpers.Slugify(r.Name), helpers.Slugify(username))
+		_, err := github.NewRepositoryCollaborator(ctx, resourceName, &github.RepositoryCollaboratorArgs{
+			Repository: repo.Name,
+			Username:   pulumi.String(username),
+			Permission: pulumi.String(permission),
+		}, opts...)
+		if err != nil {
+			return fmt.Errorf("failed to add collaborator %s to %s: %w", username, r.Name, err)
+		}
+	}
 	return nil
 }
 
