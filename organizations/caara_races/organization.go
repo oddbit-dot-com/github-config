@@ -38,6 +38,9 @@ var Organization = api.Organization{
 				Visibility: pulumi.String("private"),
 			},
 			BranchProtectionRules: api.BranchProtectionRules{},
+			Teams: map[string]string{
+				"webworkers": "push",
+			},
 		},
 	},
 
