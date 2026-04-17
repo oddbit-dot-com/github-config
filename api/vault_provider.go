@@ -62,9 +62,8 @@ func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgNa
 	}
 
 	providerArgs := &vault.ProviderArgs{
-		Address:       pulumi.String(*config.Address),
-		Token:         pulumi.String(*config.Token),
-		SkipTlsVerify: pulumi.Bool(false),
+		Address: pulumi.String(*config.Address),
+		Token:   pulumi.String(*config.Token),
 	}
 
 	resourceName := fmt.Sprintf("vault-provider.%s", helpers.Slugify(orgName))
