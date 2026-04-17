@@ -143,5 +143,151 @@ func TestOrgSecretCustomVisibility(t *testing.T) {
 	}
 }
 
+func TestRepoSecretNoVaultProvider(t *testing.T) {
+	mocks := &mockMonitor{}
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		repo := &Repository{
+			Name:           "test-repo",
+			RepositoryArgs: &github.RepositoryArgs{},
+			Secrets: ActionsSecrets{
+				"MY_SECRET": {Path: "mypath", Key: "mykey"},
+			},
+		}
+		return repo.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err == nil {
+		t.Fatal("expected error when repo has Secrets but no org vault provider")
+	}
+	if !strings.Contains(err.Error(), "vault") {
+		t.Errorf("expected vault-related error, got: %v", err)
+	}
+}
+
+func TestRepoSecretProvisioned(t *testing.T) {
+	mocks := &mockMonitor{}
+	mocks.withVaultSecrets(map[string]map[string]string{
+		"mypath": {"mykey": "reposecret"},
+	})
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		org := &Organization{
+			Name:                "testorg",
+			VaultProviderConfig: testVaultConfig(),
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					Secrets: ActionsSecrets{
+						"DB_PASSWORD": {Path: "mypath", Key: "mykey"},
+					},
+				},
+			},
+		}
+		return org.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secrets := mocks.findByType("github:index/actionsSecret:ActionsSecret")
+	if len(secrets) != 1 {
+		t.Fatalf("expected 1 ActionsSecret, got %d", len(secrets))
+	}
+	if secrets[0].inputs["secretName"].StringValue() != "DB_PASSWORD" {
+		t.Errorf("expected secretName=DB_PASSWORD, got %v", secrets[0].inputs["secretName"])
+	}
+}
+
+func TestRepoEnvironmentCreated(t *testing.T) {
+	mocks := &mockMonitor{}
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		repo := &Repository{
+			Name:           "test-repo",
+			RepositoryArgs: &github.RepositoryArgs{},
+			Environments: map[string]*github.RepositoryEnvironmentArgs{
+				"production": {},
+			},
+		}
+		return repo.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+	envs := mocks.findByType("github:index/repositoryEnvironment:RepositoryEnvironment")
+	if len(envs) != 1 {
+		t.Fatalf("expected 1 RepositoryEnvironment, got %d", len(envs))
+	}
+	if envs[0].inputs["environment"].StringValue() != "production" {
+		t.Errorf("expected environment=production, got %v", envs[0].inputs["environment"])
+	}
+}
+
+func TestEnvSecretMissingEnvironment(t *testing.T) {
+	mocks := &mockMonitor{}
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		org := &Organization{
+			Name:                "testorg",
+			VaultProviderConfig: testVaultConfig(),
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					EnvironmentSecrets: map[string]ActionsSecrets{
+						"production": {
+							"API_KEY": {Path: "p", Key: "k"},
+						},
+					},
+				},
+			},
+		}
+		return org.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err == nil {
+		t.Fatal("expected error when EnvironmentSecrets references undeclared environment")
+	}
+	if !strings.Contains(err.Error(), "production") {
+		t.Errorf("expected error to mention environment name, got: %v", err)
+	}
+}
+
+func TestEnvSecretProvisioned(t *testing.T) {
+	mocks := &mockMonitor{}
+	mocks.withVaultSecrets(map[string]map[string]string{
+		"prod/apikey": {"key": "thevalue"},
+	})
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		org := &Organization{
+			Name:                "testorg",
+			VaultProviderConfig: testVaultConfig(),
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					Environments: map[string]*github.RepositoryEnvironmentArgs{
+						"production": {},
+					},
+					EnvironmentSecrets: map[string]ActionsSecrets{
+						"production": {
+							"PROD_API_KEY": {Path: "prod/apikey", Key: "key"},
+						},
+					},
+				},
+			},
+		}
+		return org.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+	envSecrets := mocks.findByType("github:index/actionsEnvironmentSecret:ActionsEnvironmentSecret")
+	if len(envSecrets) != 1 {
+		t.Fatalf("expected 1 ActionsEnvironmentSecret, got %d", len(envSecrets))
+	}
+	if envSecrets[0].inputs["secretName"].StringValue() != "PROD_API_KEY" {
+		t.Errorf("expected secretName=PROD_API_KEY, got %v", envSecrets[0].inputs["secretName"])
+	}
+	if envSecrets[0].inputs["environment"].StringValue() != "production" {
+		t.Errorf("expected environment=production, got %v", envSecrets[0].inputs["environment"])
+	}
+}
+
 // Ensure github import is used (for type reference in other test files)
 var _ = (*github.Provider)(nil)

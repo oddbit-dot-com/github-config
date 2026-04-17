@@ -54,6 +54,16 @@ type Repository struct {
 	// Valid permissions: "pull", "triage", "push", "maintain", "admin"
 	Collaborators map[string]string
 
+	// Secrets maps secret names to Vault secret references for GitHub Actions repo secrets.
+	Secrets ActionsSecrets
+
+	// Environments maps environment names to their configuration for this repository.
+	Environments map[string]*github.RepositoryEnvironmentArgs
+
+	// EnvironmentSecrets maps environment names to their GitHub Actions secrets,
+	// where each secret value is read from Vault.
+	EnvironmentSecrets map[string]ActionsSecrets
+
 	// Parent organization for org-mode
 	// Used for defaults resolution and provider inheritance
 	// If nil, repository is in standalone mode
@@ -139,6 +149,18 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	}, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to create issue labels for %s: %w", r.Name, err)
+	}
+
+	if err := r.ensureEnvironments(ctx, repo, opts); err != nil {
+		return err
+	}
+
+	if err := r.ensureRepoSecrets(ctx, opts); err != nil {
+		return err
+	}
+
+	if err := r.ensureEnvironmentSecrets(ctx, repo, opts); err != nil {
+		return err
 	}
 
 	return nil
