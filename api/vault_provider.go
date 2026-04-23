@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/oddbit-dot-com/github-config/helpers"
-	vault "github.com/pulumi/pulumi-vault/sdk/v6/go/vault"
+	"github.com/pulumi/pulumi-vault/sdk/v6/go/vault"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 

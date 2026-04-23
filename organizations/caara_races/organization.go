@@ -24,7 +24,7 @@ var Organization = api.Organization{
 	},
 
 	Members: api.Members{
-		"larsks": "admin",
+		"larsks": api.PermissionAdmin,
 	},
 
 	Repositories: []*api.Repository{
@@ -72,7 +72,7 @@ var Organization = api.Organization{
 				Description: pulumi.String("Website maintainers"),
 			},
 			Members: map[string]string{
-				"larsks": "maintainer",
+				"larsks": api.MembershipMaintainer,
 			},
 		},
 	},
