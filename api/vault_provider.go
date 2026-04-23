@@ -13,6 +13,8 @@ import (
 type VaultProviderConfig struct {
 	Address    *string
 	Token      *string
+	JWT        *string
+	JWTRole    *string
 	MountPoint string
 }
 
@@ -48,6 +50,16 @@ func (c *VaultProviderConfig) WithMountPoint(mountpoint string) *VaultProviderCo
 	return c
 }
 
+func (c *VaultProviderConfig) WithJWTRole(role string) *VaultProviderConfig {
+	c.JWTRole = &role
+	return c
+}
+
+func (c *VaultProviderConfig) WithJWT(jwt string) *VaultProviderConfig {
+	c.JWT = &jwt
+	return c
+}
+
 func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgName string) (*vault.Provider, error) {
 	if config == nil {
 		return nil, nil
@@ -64,6 +76,14 @@ func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgNa
 		return nil, fmt.Errorf("vault address not configured for %s: set VAULT_ADDR or pass an explicit address", orgName)
 	}
 
+	jwt := ""
+	if config.JWT != nil {
+		jwt = *config.JWT
+	}
+	if jwt == "" {
+		jwt = os.Getenv("VAULT_JWT")
+	}
+
 	token := ""
 	if config.Token != nil {
 		token = *config.Token
@@ -71,13 +91,26 @@ func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgNa
 	if token == "" {
 		token = os.Getenv("VAULT_TOKEN")
 	}
-	if token == "" {
-		return nil, fmt.Errorf("vault token not configured for %s: set VAULT_TOKEN or pass an explicit token", orgName)
-	}
 
 	providerArgs := &vault.ProviderArgs{
 		Address: pulumi.String(address),
-		Token:   pulumi.String(token),
+	}
+
+	if config.JWTRole != nil && jwt != "" {
+		providerArgs.AuthLoginJwt = &vault.ProviderAuthLoginJwtArgs{
+			Jwt:  pulumi.String(jwt),
+			Role: pulumi.String(*config.JWTRole),
+		}
+		// pulumi-vault SDK v6.7.4 requires Token != nil unconditionally (returns
+		// an error if nil), even when JWT auth is configured via AuthLoginJwt.
+		// Passing an empty string satisfies the nil check. Verify when upgrading
+		// pulumi-vault that this is still needed and that an empty token does not
+		// interfere with JWT auth at the Vault API level.
+		providerArgs.Token = pulumi.String("")
+	} else if token != "" {
+		providerArgs.Token = pulumi.String(token)
+	} else {
+		return nil, fmt.Errorf("vault auth not configured for %s: set VAULT_JWT (and configure a JWT role) or VAULT_TOKEN", orgName)
 	}
 
 	resourceName := fmt.Sprintf("vault-provider.%s", helpers.Slugify(orgName))
