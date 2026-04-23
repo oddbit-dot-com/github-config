@@ -2,33 +2,41 @@ package api
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/oddbit-dot-com/github-config/helpers"
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// ProviderConfig holds GitHub provider configuration
-type ProviderConfig struct {
+// GithubProviderConfig holds GitHub provider configuration
+type GithubProviderConfig struct {
 	// GitHub token. If nil, uses default (GITHUB_TOKEN env var or gh CLI)
 	Token *string
 
 	// GitHub owner (organization or user). Used when creating providers.
 	// In org-mode: if nil, falls back to organization name
-	// In standalone mode: required to create a provider from ProviderConfig
+	// In standalone mode: required to create a provider from GithubProviderConfig
 	Owner *string
 }
 
-// ProviderFromEnv creates a provider config that reads from the specified
-// environment variable, falling back to GITHUB_TOKEN or gh CLI if not set
-func ProviderFromEnv(envVar string) *ProviderConfig {
-	token := os.Getenv(envVar)
-	if token == "" {
-		// Fall back to default - return nil token to use Pulumi's default resolution
-		return &ProviderConfig{Token: nil}
+// NewGithubProviderConfig creates a new GithubProviderConfig with no defaults set.
+func NewGithubProviderConfig() *GithubProviderConfig {
+	return &GithubProviderConfig{}
+}
+
+// WithToken sets the GitHub token. If token is empty, it is ignored and the
+// default token resolution (GITHUB_TOKEN env var or gh CLI) is used.
+func (c *GithubProviderConfig) WithToken(token string) *GithubProviderConfig {
+	if token != "" {
+		c.Token = &token
 	}
-	return &ProviderConfig{Token: &token}
+	return c
+}
+
+// WithOwner sets the GitHub owner (organization or user).
+func (c *GithubProviderConfig) WithOwner(owner string) *GithubProviderConfig {
+	c.Owner = &owner
+	return c
 }
 
 // CreateGitHubProvider creates a GitHub provider for the given configuration.
@@ -40,7 +48,7 @@ func ProviderFromEnv(envVar string) *ProviderConfig {
 // - For standalone repositories: pass empty defaultOwner and repo name as suffix
 func CreateGitHubProvider(
 	ctx *pulumi.Context,
-	config *ProviderConfig,
+	config *GithubProviderConfig,
 	defaultOwner string,
 	resourceNameSuffix string,
 ) (*github.Provider, error) {

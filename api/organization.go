@@ -15,7 +15,7 @@ type Organization struct {
 	Name string
 
 	// Optional provider configuration (token). If nil, uses default credentials.
-	ProviderConfig *ProviderConfig
+	GithubProviderConfig *GithubProviderConfig
 
 	// Organization settings (billing email, blog, description, etc.)
 	Settings *github.OrganizationSettingsArgs
@@ -102,7 +102,7 @@ func (o *Organization) Ensure(ctx *pulumi.Context) error {
 
 // createProvider creates a GitHub provider for this organization
 func (o *Organization) createProvider(ctx *pulumi.Context) (*github.Provider, error) {
-	return CreateGitHubProvider(ctx, o.ProviderConfig, o.Name, "")
+	return CreateGitHubProvider(ctx, o.GithubProviderConfig, o.Name, "")
 }
 
 // ensureSettings provisions organization settings

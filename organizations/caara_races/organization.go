@@ -8,8 +8,8 @@ import (
 )
 
 var Organization = api.Organization{
-	Name:           "caara-races",
-	ProviderConfig: api.ProviderFromEnv("GITHUB_TOKEN_CAARA_RACES"),
+	Name:                 "caara-races",
+	GithubProviderConfig: api.NewGithubProviderConfig(),
 
 	Settings: &github.OrganizationSettingsArgs{
 		BillingEmail: pulumi.String("lars@oddbit.com"),

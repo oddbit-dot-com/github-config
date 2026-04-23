@@ -8,8 +8,8 @@ import (
 
 // Organization defines the baystateradio GitHub organization configuration
 var Organization = api.Organization{
-	Name:           "baystateradio",
-	ProviderConfig: api.ProviderFromEnv("GITHUB_TOKEN_BAYSTATERADIO"),
+	Name:                 "baystateradio",
+	GithubProviderConfig: api.NewGithubProviderConfig(),
 
 	Settings: &github.OrganizationSettingsArgs{
 		BillingEmail: pulumi.String("lars@oddbit.com"),
