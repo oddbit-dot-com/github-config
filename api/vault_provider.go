@@ -93,7 +93,8 @@ func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgNa
 	}
 
 	providerArgs := &vault.ProviderArgs{
-		Address: pulumi.String(address),
+		Address:        pulumi.String(address),
+		SkipChildToken: pulumi.Bool(true),
 	}
 
 	if config.JWTRole != nil && jwt != "" {
