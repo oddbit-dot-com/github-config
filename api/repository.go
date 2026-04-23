@@ -38,7 +38,7 @@ type Repository struct {
 	// Optional provider configuration for standalone mode
 	// Allows specifying owner and token without manually creating a provider
 	// If nil or Owner is nil, falls back to explicit Provider or Pulumi default
-	ProviderConfig *ProviderConfig
+	GithubProviderConfig *GithubProviderConfig
 
 	// Optional provider for standalone mode
 	// If nil, uses Pulumi's default provider
@@ -79,7 +79,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	r.RepositoryArgs.Name = pulumi.String(r.Name)
 
 	// Create provider from ProviderConfig if in standalone mode and config provided
-	if r.organization == nil && r.Provider == nil && r.ProviderConfig != nil {
+	if r.organization == nil && r.Provider == nil && r.GithubProviderConfig != nil {
 		provider, err := r.createStandaloneProvider(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to create provider from config for %s: %w", r.Name, err)
@@ -211,7 +211,7 @@ func (r *Repository) getProvider() *github.Provider {
 // createStandaloneProvider creates a provider from ProviderConfig when in standalone mode
 // Returns nil if ProviderConfig is nil or Owner is not set
 func (r *Repository) createStandaloneProvider(ctx *pulumi.Context) (*github.Provider, error) {
-	return CreateGitHubProvider(ctx, r.ProviderConfig, "", r.Name)
+	return CreateGitHubProvider(ctx, r.GithubProviderConfig, "", r.Name)
 }
 
 // getBranchProtectionRules returns the effective branch protection rules

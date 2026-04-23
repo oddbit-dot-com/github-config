@@ -7,8 +7,8 @@ import (
 )
 
 var Organization = api.Organization{
-	Name:           "oddbit-dot-com",
-	ProviderConfig: api.ProviderFromEnv("GITHUB_TOKEN_ODDBIT_DOT_COM"),
+	Name:                 "oddbit-dot-com",
+	GithubProviderConfig: api.NewGithubProviderConfig(),
 
 	Settings: &github.OrganizationSettingsArgs{
 		BillingEmail: pulumi.String("lars@oddbit.com"),
