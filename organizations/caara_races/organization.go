@@ -27,16 +27,6 @@ var Organization = api.Organization{
 		"larsks": "admin",
 	},
 
-	Secrets: api.OrgActionsSecrets{
-		"RCLONE_CLIENT_SECRET": api.OrgSecretRef{
-			VaultSecretRef: api.VaultSecretRef{
-				Path: "github-publish-workflow",
-				Key:  "client-secret",
-			},
-			Visibility: "all",
-		},
-	},
-
 	Repositories: []*api.Repository{
 		{
 			Name: "caara-races-website",
@@ -46,6 +36,20 @@ var Organization = api.Organization{
 				HomepageUrl: pulumi.String("https://caara-races.oddbit.com/"),
 				Pages: &github.RepositoryPagesArgs{
 					BuildType: pulumi.String("workflow"),
+				},
+			},
+			Secrets: api.ActionsSecrets{
+				"RCLONE_CLIENT_SECRET": api.VaultSecretRef{
+					Path: "github-publish-workflow",
+					Key:  "client-secret",
+				},
+				"GOOGLE_GEOCODING_API_KEY": api.VaultSecretRef{
+					Path: "google/geocoding-api",
+					Key:  "api-key",
+				},
+				"MAPTILER_API_KEY": api.VaultSecretRef{
+					Path: "maptiler",
+					Key:  "api-key",
 				},
 			},
 		},
