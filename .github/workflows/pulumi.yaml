@@ -8,6 +8,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   update:
     name: Update
@@ -17,6 +21,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: "stable"
+
       - name: Acquire github token
         id: generate-token
         uses: actions/create-github-app-token@v3
@@ -24,19 +29,33 @@ jobs:
           client-id: ${{ secrets.CONFIG_CLIENT_ID }}
           private-key: ${{ secrets.CONFIG_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-region: ${{ secrets.AWS_REGION }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      - run: go mod download
+
+      - name: Mint JWT token for caara-races vault
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('urn:vault.oddbit.com:caara-races');
+            core.setSecret(token);
+            core.exportVariable('VAULT_JWT_CAARA_RACES', token);
+
+      - name: Install dependencies
+        run: go mod download
+
       - uses: pulumi/actions@v6
         with:
           command: up
           stack-name: prod
           cloud-url: s3://tfstate.oddbit
+          comment-on-summary: true
         env:
           PULUMI_CONFIG_PASSPHRASE: ${{ secrets.PULUMI_CONFIG_PASSPHRASE }}
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           GITHUB_OWNER: ${{ github.repository_owner }}
+          VAULT_ADDR: https://vault.oddbit.com
