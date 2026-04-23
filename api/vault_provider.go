@@ -15,6 +15,7 @@ type VaultProviderConfig struct {
 	Token      *string
 	JWT        *string
 	JWTRole    *string
+	JWTMount   *string
 	MountPoint string
 }
 
@@ -60,6 +61,11 @@ func (c *VaultProviderConfig) WithJWT(jwt string) *VaultProviderConfig {
 	return c
 }
 
+func (c *VaultProviderConfig) WithJWTMount(mount string) *VaultProviderConfig {
+	c.JWTMount = &mount
+	return c
+}
+
 func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgName string) (*vault.Provider, error) {
 	if config == nil {
 		return nil, nil
@@ -98,10 +104,14 @@ func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgNa
 	}
 
 	if config.JWTRole != nil && jwt != "" {
-		providerArgs.AuthLoginJwt = &vault.ProviderAuthLoginJwtArgs{
+		jwtArgs := &vault.ProviderAuthLoginJwtArgs{
 			Jwt:  pulumi.String(jwt),
 			Role: pulumi.String(*config.JWTRole),
 		}
+		if config.JWTMount != nil {
+			jwtArgs.Mount = pulumi.StringPtr(*config.JWTMount)
+		}
+		providerArgs.AuthLoginJwt = jwtArgs
 		// pulumi-vault SDK v6.7.4 requires Token != nil unconditionally (returns
 		// an error if nil), even when JWT auth is configured via AuthLoginJwt.
 		// Passing an empty string satisfies the nil check. Verify when upgrading
