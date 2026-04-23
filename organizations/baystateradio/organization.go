@@ -19,7 +19,7 @@ var Organization = api.Organization{
 	},
 
 	Members: api.Members{
-		"larsks": "admin",
+		"larsks": api.PermissionAdmin,
 	},
 
 	Repositories: []*api.Repository{
