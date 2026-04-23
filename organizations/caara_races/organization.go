@@ -2,6 +2,8 @@
 package caara_races
 
 import (
+	"os"
+
 	"github.com/oddbit-dot-com/github-config/api"
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -10,6 +12,12 @@ import (
 var Organization = api.Organization{
 	Name:                 "caara-races",
 	GithubProviderConfig: api.NewGithubProviderConfig(),
+	VaultProviderConfig: api.NewVaultProviderConfig().
+		WithMountPoint("caara-races").
+		WithToken(os.Getenv("VAULT_TOKEN_CAARA_RACES")).
+		WithJWTMount("github-actions").
+		WithJWT(os.Getenv("VAULT_JWT_CAARA_RACES")).
+		WithJWTRole("caara-races-reader"),
 
 	Settings: &github.OrganizationSettingsArgs{
 		BillingEmail: pulumi.String("lars@oddbit.com"),
@@ -17,6 +25,16 @@ var Organization = api.Organization{
 
 	Members: api.Members{
 		"larsks": "admin",
+	},
+
+	Secrets: api.OrgActionsSecrets{
+		"RCLONE_CLIENT_SECRET": api.OrgSecretRef{
+			VaultSecretRef: api.VaultSecretRef{
+				Path: "github-publish-workflow",
+				Key:  "client-secret",
+			},
+			Visibility: "all",
+		},
 	},
 
 	Repositories: []*api.Repository{
