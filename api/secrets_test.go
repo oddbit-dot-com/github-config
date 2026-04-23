@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -435,6 +436,110 @@ func TestNoCredentials(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "vault auth not configured") {
 		t.Errorf("expected 'vault auth not configured' error, got: %v", err)
+	}
+}
+
+func TestApplyEncodingNone(t *testing.T) {
+	ref := VaultSecretRef{Path: "p", Key: "k", Encoding: EncodingNone}
+	got, err := ref.applyEncoding("hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "hello" {
+		t.Errorf("expected passthrough, got %q", got)
+	}
+}
+
+func TestApplyEncodingBase64(t *testing.T) {
+	ref := VaultSecretRef{Path: "p", Key: "k", Encoding: EncodingBase64}
+	got, err := ref.applyEncoding("hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := base64.StdEncoding.EncodeToString([]byte("hello"))
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+func TestApplyEncodingUnknown(t *testing.T) {
+	ref := VaultSecretRef{Path: "p", Key: "k", Encoding: "rot13"}
+	_, err := ref.applyEncoding("hello")
+	if err == nil {
+		t.Fatal("expected error for unknown encoding")
+	}
+	if !strings.Contains(err.Error(), "rot13") {
+		t.Errorf("expected error to mention encoding name, got: %v", err)
+	}
+}
+
+func secretPlaintextValue(r mockResource) string {
+	v := r.inputs["plaintextValue"]
+	if v.IsSecret() {
+		v = v.SecretValue().Element
+	}
+	return v.StringValue()
+}
+
+func TestOrgSecretBase64Encoded(t *testing.T) {
+	mocks := &mockMonitor{}
+	mocks.withVaultSecrets(map[string]map[string]string{
+		"mypath": {"mykey": "rawvalue"},
+	})
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		org := &Organization{
+			Name:                "testorg",
+			VaultProviderConfig: testVaultConfig(),
+			Secrets: OrgActionsSecrets{
+				"MY_SECRET": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey", Encoding: EncodingBase64}},
+			},
+		}
+		return org.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secrets := mocks.findByType("github:index/actionsOrganizationSecret:ActionsOrganizationSecret")
+	if len(secrets) != 1 {
+		t.Fatalf("expected 1 ActionsOrganizationSecret, got %d", len(secrets))
+	}
+	want := base64.StdEncoding.EncodeToString([]byte("rawvalue"))
+	if got := secretPlaintextValue(secrets[0]); got != want {
+		t.Errorf("expected plaintextValue=%q, got %q", want, got)
+	}
+}
+
+func TestRepoSecretBase64Encoded(t *testing.T) {
+	mocks := &mockMonitor{}
+	mocks.withVaultSecrets(map[string]map[string]string{
+		"mypath": {"mykey": "rawvalue"},
+	})
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		org := &Organization{
+			Name:                "testorg",
+			VaultProviderConfig: testVaultConfig(),
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					Secrets: ActionsSecrets{
+						"DB_PASSWORD": {Path: "mypath", Key: "mykey", Encoding: EncodingBase64},
+					},
+				},
+			},
+		}
+		return org.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secrets := mocks.findByType("github:index/actionsSecret:ActionsSecret")
+	if len(secrets) != 1 {
+		t.Fatalf("expected 1 ActionsSecret, got %d", len(secrets))
+	}
+	want := base64.StdEncoding.EncodeToString([]byte("rawvalue"))
+	if got := secretPlaintextValue(secrets[0]); got != want {
+		t.Errorf("expected plaintextValue=%q, got %q", want, got)
 	}
 }
 

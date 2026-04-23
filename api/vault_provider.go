@@ -1,12 +1,15 @@
 package api
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/oddbit-dot-com/github-config/helpers"
 	"github.com/pulumi/pulumi-vault/sdk/v6/go/vault"
+	"github.com/pulumi/pulumi-vault/sdk/v6/go/vault/kv"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -19,9 +22,51 @@ type VaultProviderConfig struct {
 	MountPoint string
 }
 
+type Encoding string
+
+const (
+	EncodingNone   Encoding = ""
+	EncodingBase64 Encoding = "base64"
+)
+
 type VaultSecretRef struct {
-	Path string
-	Key  string
+	Path     string
+	Key      string
+	Encoding Encoding
+}
+
+func (r VaultSecretRef) applyEncoding(v string) (string, error) {
+	switch r.Encoding {
+	case EncodingNone:
+		return v, nil
+	case EncodingBase64:
+		return base64.StdEncoding.EncodeToString([]byte(v)), nil
+	default:
+		return "", fmt.Errorf("unsupported encoding %q for vault secret at %s", r.Encoding, r.Path)
+	}
+}
+
+func readVaultSecret(ctx *pulumi.Context, mountPoint string, vaultProvider *vault.Provider, ref VaultSecretRef) (pulumi.StringPtrInput, error) {
+	result, err := kv.LookupSecretV2(ctx, &kv.LookupSecretV2Args{
+		Mount: mountPoint,
+		Name:  ref.Path,
+	}, pulumi.Provider(vaultProvider))
+	if err != nil {
+		return nil, err
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(result.DataJson), &data); err != nil {
+		return nil, fmt.Errorf("invalid JSON from vault at %s: %w", ref.Path, err)
+	}
+	v, ok := data[ref.Key].(string)
+	if !ok {
+		return nil, fmt.Errorf("key %q not found or not a string in vault secret at %s", ref.Key, ref.Path)
+	}
+	v, err = ref.applyEncoding(v)
+	if err != nil {
+		return nil, err
+	}
+	return pulumi.String(v).ToStringPtrOutput(), nil
 }
 
 type OrgSecretRef struct {
