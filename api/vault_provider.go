@@ -54,16 +54,32 @@ func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgNa
 	if config == nil {
 		return nil, nil
 	}
-	if config.Address == nil {
+
+	address := ""
+	if config.Address != nil {
+		address = *config.Address
+	}
+	if address == "" {
+		address = os.Getenv("VAULT_ADDR")
+	}
+	if address == "" {
 		return nil, fmt.Errorf("vault address not configured for %s: set VAULT_ADDR or pass an explicit address", orgName)
 	}
-	if config.Token == nil {
+
+	token := ""
+	if config.Token != nil {
+		token = *config.Token
+	}
+	if token == "" {
+		token = os.Getenv("VAULT_TOKEN")
+	}
+	if token == "" {
 		return nil, fmt.Errorf("vault token not configured for %s: set VAULT_TOKEN or pass an explicit token", orgName)
 	}
 
 	providerArgs := &vault.ProviderArgs{
-		Address: pulumi.String(*config.Address),
-		Token:   pulumi.String(*config.Token),
+		Address: pulumi.String(address),
+		Token:   pulumi.String(token),
 	}
 
 	resourceName := fmt.Sprintf("vault-provider.%s", helpers.Slugify(orgName))
