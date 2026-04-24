@@ -155,7 +155,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 		return err
 	}
 
-	if err := r.ensureRepoSecrets(ctx, opts); err != nil {
+	if err := r.ensureRepoSecrets(ctx, repo, opts); err != nil {
 		return err
 	}
 
