@@ -4,6 +4,7 @@ import (
 	"github.com/oddbit-dot-com/github-config/api"
 	"github.com/oddbit-dot-com/github-config/organizations/baystateradio"
 	"github.com/oddbit-dot-com/github-config/organizations/caara_races"
+	"github.com/oddbit-dot-com/github-config/organizations/manymanymeatballs"
 	"github.com/oddbit-dot-com/github-config/organizations/oddbit_dot_com"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -14,6 +15,7 @@ func main() {
 			&baystateradio.Organization,
 			&caara_races.Organization,
 			&oddbit_dot_com.Organization,
+			&manymanymeatballs.Organization,
 		}
 
 		for _, org := range resources {
