@@ -51,6 +51,11 @@ var Organization = api.Organization{
 					Path: "maptiler",
 					Key:  "api-key",
 				},
+				"GOOGLE_SHEETS_READER_SA": api.VaultSecretRef{
+					Path:     "google/sheets",
+					Key:      "service-account",
+					Encoding: api.EncodingBase64,
+				},
 			},
 		},
 		{

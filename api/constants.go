@@ -1,7 +1,7 @@
 package api
 
 const (
-	PermissionAdmin    = "Admin"
+	PermissionAdmin    = "admin"
 	PermissionRead     = "pull"
 	PermissionPull     = "pull"
 	PermissionWrite    = "push"

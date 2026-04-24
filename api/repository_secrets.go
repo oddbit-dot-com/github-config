@@ -1,13 +1,11 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/oddbit-dot-com/github-config/helpers"
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
 	vault "github.com/pulumi/pulumi-vault/sdk/v6/go/vault"
-	"github.com/pulumi/pulumi-vault/sdk/v6/go/vault/kv"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -38,8 +36,9 @@ func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, opts []pulumi.Resour
 		return err
 	}
 
+	mountPoint := r.organization.VaultProviderConfig.MountPoint
 	for secretName, ref := range r.Secrets {
-		value, err := r.readVaultSecret(ctx, ref, vaultProvider)
+		value, err := readVaultSecret(ctx, mountPoint, vaultProvider, ref)
 		if err != nil {
 			return fmt.Errorf("failed to read vault secret for %s/%s: %w", r.Name, secretName, err)
 		}
@@ -67,12 +66,13 @@ func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.
 		return err
 	}
 
+	mountPoint := r.organization.VaultProviderConfig.MountPoint
 	for envName, secrets := range r.EnvironmentSecrets {
 		if _, declared := r.Environments[envName]; !declared {
 			return fmt.Errorf("environment %q referenced in EnvironmentSecrets of %s is not declared in Environments", envName, r.Name)
 		}
 		for secretName, ref := range secrets {
-			value, err := r.readVaultSecret(ctx, ref, vaultProvider)
+			value, err := readVaultSecret(ctx, mountPoint, vaultProvider, ref)
 			if err != nil {
 				return fmt.Errorf("failed to read vault secret for %s/%s/%s: %w", r.Name, envName, secretName, err)
 			}
@@ -100,22 +100,3 @@ func (r *Repository) getVaultProvider() (*vault.Provider, error) {
 	return r.organization.vaultProvider, nil
 }
 
-func (r *Repository) readVaultSecret(ctx *pulumi.Context, ref VaultSecretRef, vaultProvider *vault.Provider) (pulumi.StringPtrInput, error) {
-	cfg := r.organization.VaultProviderConfig
-	result, err := kv.LookupSecretV2(ctx, &kv.LookupSecretV2Args{
-		Mount: cfg.MountPoint,
-		Name:  ref.Path,
-	}, pulumi.Provider(vaultProvider))
-	if err != nil {
-		return nil, err
-	}
-	var data map[string]any
-	if err := json.Unmarshal([]byte(result.DataJson), &data); err != nil {
-		return nil, fmt.Errorf("invalid JSON from vault at %s: %w", ref.Path, err)
-	}
-	v, ok := data[ref.Key].(string)
-	if !ok {
-		return nil, fmt.Errorf("key %q not found or not a string in vault secret at %s", ref.Key, ref.Path)
-	}
-	return pulumi.String(v).ToStringPtrOutput(), nil
-}
