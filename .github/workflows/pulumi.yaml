@@ -37,6 +37,14 @@ jobs:
             core.setSecret(token);
             core.exportVariable('VAULT_JWT_CAARA_RACES', token);
 
+      - name: Mint JWT token for baystateradio vault
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken('urn:vault.oddbit.com:baystateradio');
+            core.setSecret(token);
+            core.exportVariable('VAULT_JWT_BAYSTATERADIO', token);
+
       - name: Install dependencies
         run: go mod download
 

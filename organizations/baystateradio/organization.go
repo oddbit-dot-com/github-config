@@ -1,6 +1,8 @@
 package baystateradio
 
 import (
+	"os"
+
 	"github.com/oddbit-dot-com/github-config/api"
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -11,6 +13,12 @@ var Organization = api.Organization{
 	Owner: api.Owner{
 		Name:                 "baystateradio",
 		GithubProviderConfig: api.NewGithubProviderConfig(),
+		VaultProviderConfig: api.NewVaultProviderConfig().
+			WithMountPoint("baystateradio").
+			WithToken(os.Getenv("VAULT_TOKEN_BAYSTATERADIO")).
+			WithJWTMount("github-actions").
+			WithJWT(os.Getenv("VAULT_JWT_BAYSTATERADIO")).
+			WithJWTRole("baystateradio-reader"),
 	},
 
 	Settings: &github.OrganizationSettingsArgs{
@@ -34,6 +42,12 @@ var Organization = api.Organization{
 				Pages: &github.RepositoryPagesArgs{
 					BuildType: pulumi.String(api.PageBuildWorkflow),
 					Cname:     pulumi.String("baystateradio.org"),
+				},
+			},
+			Secrets: api.ActionsSecrets{
+				"FIREBASE_SERVICE_ACCOUNT": api.VaultSecretRef{
+					Path: "firebase",
+					Key:  "service-account",
 				},
 			},
 		},
