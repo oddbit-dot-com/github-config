@@ -54,6 +54,10 @@ type Repository struct {
 	// Valid permissions: "pull", "triage", "push", "maintain", "admin"
 	Collaborators map[string]string
 
+	// DefaultBranch sets the default branch for the repository using a separate
+	// BranchDefault resource (the RepositoryArgs.DefaultBranch field is deprecated).
+	DefaultBranch string
+
 	// Secrets maps secret names to Vault secret references for GitHub Actions repo secrets.
 	Secrets ActionsSecrets
 
@@ -104,6 +108,24 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	repo, err := github.NewRepository(ctx, resourceName, r.RepositoryArgs, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to create repository %s: %w", r.Name, err)
+	}
+
+	// Set default branch if specified
+	if r.DefaultBranch != "" {
+		var bdResourceName string
+		if r.organization != nil {
+			bdResourceName = fmt.Sprintf("github_branch_default.%s.%s",
+				helpers.Slugify(r.organization.Name), helpers.Slugify(r.Name))
+		} else {
+			bdResourceName = fmt.Sprintf("github_branch_default.%s", helpers.Slugify(r.Name))
+		}
+		_, err = github.NewBranchDefault(ctx, bdResourceName, &github.BranchDefaultArgs{
+			Repository: repo.Name,
+			Branch:     pulumi.String(r.DefaultBranch),
+		}, opts...)
+		if err != nil {
+			return fmt.Errorf("failed to set default branch for %s: %w", r.Name, err)
+		}
 	}
 
 	// Get effective branch protection rules
