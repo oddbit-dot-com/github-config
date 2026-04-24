@@ -20,3 +20,8 @@ const (
 	VisibilityPublic   = "public"
 	VisibilitySelected = "selected"
 )
+
+const (
+	PageBuildLegacy   = "legacy"
+	PageBuildWorkflow = "workflow"
+)

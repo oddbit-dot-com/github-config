@@ -35,7 +35,7 @@ var Organization = api.Organization{
 				AutoInit:    pulumi.Bool(false),
 				HomepageUrl: pulumi.String("https://caara-races.oddbit.com/"),
 				Pages: &github.RepositoryPagesArgs{
-					BuildType: pulumi.String("workflow"),
+					BuildType: pulumi.String(api.PageBuildWorkflow),
 				},
 			},
 			Secrets: api.ActionsSecrets{
