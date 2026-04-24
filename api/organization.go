@@ -37,9 +37,11 @@ type Team struct {
 	Members  map[string]string
 }
 
+func (o *Organization) githubAPIKind() string { return "orgs" }
+
 // Ensure provisions all resources for this organization
 func (o *Organization) Ensure(ctx *pulumi.Context) error {
-	if err := o.ensureGithubProvider(ctx); err != nil {
+	if err := o.ensureGithubProvider(ctx, o); err != nil {
 		return err
 	}
 	if err := o.ensureVaultProvider(ctx); err != nil {

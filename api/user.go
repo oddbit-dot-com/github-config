@@ -22,9 +22,11 @@ type User struct {
 	Repositories []*Repository
 }
 
+func (u *User) githubAPIKind() string { return "users" }
+
 // Ensure provisions all resources for this user account
 func (u *User) Ensure(ctx *pulumi.Context) error {
-	if err := u.ensureGithubProvider(ctx); err != nil {
+	if err := u.ensureGithubProvider(ctx, u); err != nil {
 		return err
 	}
 	if err := u.ensureVaultProvider(ctx); err != nil {

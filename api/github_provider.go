@@ -51,6 +51,7 @@ func CreateGitHubProvider(
 	config *GithubProviderConfig,
 	defaultOwner string,
 	resourceNameSuffix string,
+	apiKind string,
 ) (*github.Provider, error) {
 	// Determine owner
 	owner := defaultOwner
@@ -75,7 +76,7 @@ func CreateGitHubProvider(
 		// Priority 2: app credentials from environment generate a per-org installation token
 		// Priority 3: fall through to GITHUB_TOKEN env var / gh CLI (no token set)
 		if creds, ok := loadAppCredentials(); ok {
-			token, err := installationTokenFunc(creds, owner)
+			token, err := installationTokenFunc(creds, owner, apiKind)
 			if err != nil {
 				return nil, fmt.Errorf("failed to generate installation token for %s: %w", owner, err)
 			}

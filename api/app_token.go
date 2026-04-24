@@ -59,7 +59,7 @@ func signAppJWT(creds *appCredentials) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(creds.privateKey)
 }
 
-func generateInstallationToken(creds *appCredentials, owner string) (string, error) {
+func generateInstallationToken(creds *appCredentials, owner, apiKind string) (string, error) {
 	appJWT, err := signAppJWT(creds)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign app JWT: %w", err)
@@ -67,7 +67,7 @@ func generateInstallationToken(creds *appCredentials, owner string) (string, err
 
 	client := &http.Client{}
 
-	installationID, err := getOrgInstallationID(client, appJWT, owner)
+	installationID, err := getInstallationID(client, appJWT, owner, apiKind)
 	if err != nil {
 		return "", err
 	}
@@ -75,9 +75,9 @@ func generateInstallationToken(creds *appCredentials, owner string) (string, err
 	return getAccessToken(client, appJWT, installationID, owner)
 }
 
-func getOrgInstallationID(client *http.Client, appJWT, owner string) (int64, error) {
+func getInstallationID(client *http.Client, appJWT, owner, apiKind string) (int64, error) {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
-		fmt.Sprintf("https://api.github.com/orgs/%s/installation", owner), nil)
+		fmt.Sprintf("https://api.github.com/%s/%s/installation", apiKind, owner), nil)
 	if err != nil {
 		return 0, fmt.Errorf("failed to build installation request: %w", err)
 	}

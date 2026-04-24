@@ -235,7 +235,7 @@ func (r *Repository) getProvider() *github.Provider {
 // createStandaloneProvider creates a provider from ProviderConfig when in standalone mode
 // Returns nil if ProviderConfig is nil or Owner is not set
 func (r *Repository) createStandaloneProvider(ctx *pulumi.Context) (*github.Provider, error) {
-	return CreateGitHubProvider(ctx, r.GithubProviderConfig, "", r.Name)
+	return CreateGitHubProvider(ctx, r.GithubProviderConfig, "", r.Name, "orgs")
 }
 
 // getBranchProtectionRules returns the effective branch protection rules
