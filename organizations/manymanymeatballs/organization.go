@@ -23,12 +23,12 @@ var Organization = api.Organization{
 
 	Repositories: []*api.Repository{
 		{
-			Name: "manymanymeatballs.com",
+			Name:          "manymanymeatballs.com",
+			DefaultBranch: "gh-pages",
 			RepositoryArgs: &github.RepositoryArgs{
-				Description:   pulumi.String("Sources for manymanymeatballs.com website"),
-				DefaultBranch: pulumi.String("gh-pages"),
-				HomepageUrl:   pulumi.String("https://manymanymeatballs.com"),
-				AutoInit:      pulumi.Bool(false),
+				Description: pulumi.String("Sources for manymanymeatballs.com website"),
+				HomepageUrl: pulumi.String("https://manymanymeatballs.com"),
+				AutoInit:    pulumi.Bool(false),
 				Pages: &github.RepositoryPagesArgs{
 					BuildType: pulumi.String(api.PageBuildLegacy),
 					Cname:     pulumi.String("manymanymeatballs.com"),
