@@ -111,7 +111,7 @@ func (c *VaultProviderConfig) WithJWTMount(mount string) *VaultProviderConfig {
 	return c
 }
 
-func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgName string) (*vault.Provider, error) {
+func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, ownerName string) (*vault.Provider, error) {
 	if config == nil {
 		return nil, nil
 	}
@@ -124,7 +124,7 @@ func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgNa
 		address = os.Getenv("VAULT_ADDR")
 	}
 	if address == "" {
-		return nil, fmt.Errorf("vault address not configured for %s: set VAULT_ADDR or pass an explicit address", orgName)
+		return nil, fmt.Errorf("vault address not configured for %s: set VAULT_ADDR or pass an explicit address", ownerName)
 	}
 
 	jwt := ""
@@ -166,9 +166,9 @@ func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, orgNa
 	} else if token != "" {
 		providerArgs.Token = pulumi.String(token)
 	} else {
-		return nil, fmt.Errorf("vault auth not configured for %s: set VAULT_JWT (and configure a JWT role) or VAULT_TOKEN", orgName)
+		return nil, fmt.Errorf("vault auth not configured for %s: set VAULT_JWT (and configure a JWT role) or VAULT_TOKEN", ownerName)
 	}
 
-	resourceName := fmt.Sprintf("vault-provider.%s", helpers.Slugify(orgName))
+	resourceName := fmt.Sprintf("vault-provider.%s", helpers.Slugify(ownerName))
 	return vault.NewProvider(ctx, resourceName, providerArgs)
 }

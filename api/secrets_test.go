@@ -51,7 +51,7 @@ func TestOrgSecretNoVaultProvider(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name: "testorg",
+			Owner: Owner{Name: "testorg"},
 			Secrets: OrgActionsSecrets{
 				"MY_SECRET": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey"}},
 			},
@@ -73,8 +73,10 @@ func TestOrgSecretProvisioned(t *testing.T) {
 	})
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                "testorg",
-			VaultProviderConfig: testVaultConfig(),
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfig(),
+			},
 			Secrets: OrgActionsSecrets{
 				"MY_SECRET": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey"}},
 			},
@@ -100,8 +102,10 @@ func TestOrgSecretVisibilityDefault(t *testing.T) {
 	})
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                "testorg",
-			VaultProviderConfig: testVaultConfig(),
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfig(),
+			},
 			Secrets: OrgActionsSecrets{
 				"S": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey"}},
 			},
@@ -127,8 +131,10 @@ func TestOrgSecretCustomVisibility(t *testing.T) {
 	})
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                "testorg",
-			VaultProviderConfig: testVaultConfig(),
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfig(),
+			},
 			Secrets: OrgActionsSecrets{
 				"S": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey"}, Visibility: "private"},
 			},
@@ -171,8 +177,10 @@ func TestRepoSecretProvisioned(t *testing.T) {
 	})
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                "testorg",
-			VaultProviderConfig: testVaultConfig(),
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfig(),
+			},
 			Repositories: []*Repository{
 				{
 					Name:           "test-repo",
@@ -225,8 +233,10 @@ func TestEnvSecretMissingEnvironment(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                "testorg",
-			VaultProviderConfig: testVaultConfig(),
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfig(),
+			},
 			Repositories: []*Repository{
 				{
 					Name:           "test-repo",
@@ -256,8 +266,10 @@ func TestEnvSecretProvisioned(t *testing.T) {
 	})
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                "testorg",
-			VaultProviderConfig: testVaultConfig(),
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfig(),
+			},
 			Repositories: []*Repository{
 				{
 					Name:           "test-repo",
@@ -301,8 +313,10 @@ func TestJWTAuthUsed(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                "testorg",
-			VaultProviderConfig: testVaultConfigJWT(),
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfigJWT(),
+			},
 		}
 		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
@@ -335,11 +349,13 @@ func TestJWTFallsBackToToken(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name: "testorg",
-			VaultProviderConfig: NewVaultProviderConfig().
-				WithAddress("http://localhost:8200").
-				WithJWTRole("test-role").
-				WithToken("test-token"),
+			Owner: Owner{
+				Name: "testorg",
+				VaultProviderConfig: NewVaultProviderConfig().
+					WithAddress("http://localhost:8200").
+					WithJWTRole("test-role").
+					WithToken("test-token"),
+			},
 		}
 		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
@@ -363,10 +379,12 @@ func TestJWTFromEnvVar(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name: "testorg",
-			VaultProviderConfig: NewVaultProviderConfig().
-				WithAddress("http://localhost:8200").
-				WithJWTRole("test-role"),
+			Owner: Owner{
+				Name: "testorg",
+				VaultProviderConfig: NewVaultProviderConfig().
+					WithAddress("http://localhost:8200").
+					WithJWTRole("test-role"),
+			},
 		}
 		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
@@ -396,10 +414,12 @@ func TestJWTIgnoredWithoutRole(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name: "testorg",
-			VaultProviderConfig: NewVaultProviderConfig().
-				WithAddress("http://localhost:8200").
-				WithToken("test-token"),
+			Owner: Owner{
+				Name: "testorg",
+				VaultProviderConfig: NewVaultProviderConfig().
+					WithAddress("http://localhost:8200").
+					WithToken("test-token"),
+			},
 		}
 		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
@@ -424,10 +444,12 @@ func TestNoCredentials(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name: "testorg",
-			VaultProviderConfig: NewVaultProviderConfig().
-				WithAddress("http://localhost:8200").
-				WithJWTRole("test-role"),
+			Owner: Owner{
+				Name: "testorg",
+				VaultProviderConfig: NewVaultProviderConfig().
+					WithAddress("http://localhost:8200").
+					WithJWTRole("test-role"),
+			},
 		}
 		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
@@ -488,8 +510,10 @@ func TestOrgSecretBase64Encoded(t *testing.T) {
 	})
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                "testorg",
-			VaultProviderConfig: testVaultConfig(),
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfig(),
+			},
 			Secrets: OrgActionsSecrets{
 				"MY_SECRET": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey", Encoding: EncodingBase64}},
 			},
@@ -516,8 +540,10 @@ func TestRepoSecretBase64Encoded(t *testing.T) {
 	})
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                "testorg",
-			VaultProviderConfig: testVaultConfig(),
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfig(),
+			},
 			Repositories: []*Repository{
 				{
 					Name:           "test-repo",

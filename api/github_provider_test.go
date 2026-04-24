@@ -55,8 +55,10 @@ func TestGitHubProviderExplicitTokenTakesPriority(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                 "testorg",
-			GithubProviderConfig: NewGithubProviderConfig().WithToken("explicit-token"),
+			Owner: Owner{
+				Name:                 "testorg",
+				GithubProviderConfig: NewGithubProviderConfig().WithToken("explicit-token"),
+			},
 		}
 		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
@@ -90,8 +92,10 @@ func TestGitHubProviderUsesAppCredentials(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                 "testorg",
-			GithubProviderConfig: NewGithubProviderConfig(),
+			Owner: Owner{
+				Name:                 "testorg",
+				GithubProviderConfig: NewGithubProviderConfig(),
+			},
 		}
 		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
@@ -121,8 +125,10 @@ func TestGitHubProviderNoTokenWhenNoCredentials(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
-			Name:                 "testorg",
-			GithubProviderConfig: NewGithubProviderConfig(),
+			Owner: Owner{
+				Name:                 "testorg",
+				GithubProviderConfig: NewGithubProviderConfig(),
+			},
 		}
 		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))

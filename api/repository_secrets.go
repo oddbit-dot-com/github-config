@@ -36,7 +36,7 @@ func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, repo *github.Reposit
 		return err
 	}
 
-	mountPoint := r.organization.VaultProviderConfig.MountPoint
+	mountPoint := r.owner.VaultProviderConfig.MountPoint
 	for secretName, ref := range r.Secrets {
 		value, err := readVaultSecret(ctx, mountPoint, vaultProvider, ref)
 		if err != nil {
@@ -66,7 +66,7 @@ func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.
 		return err
 	}
 
-	mountPoint := r.organization.VaultProviderConfig.MountPoint
+	mountPoint := r.owner.VaultProviderConfig.MountPoint
 	for envName, secrets := range r.EnvironmentSecrets {
 		if _, declared := r.Environments[envName]; !declared {
 			return fmt.Errorf("environment %q referenced in EnvironmentSecrets of %s is not declared in Environments", envName, r.Name)
@@ -94,8 +94,8 @@ func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.
 }
 
 func (r *Repository) getVaultProvider() (*vault.Provider, error) {
-	if r.organization == nil || r.organization.vaultProvider == nil {
-		return nil, fmt.Errorf("repository %s has secrets but its organization has no vault provider configured", r.Name)
+	if r.owner == nil || r.owner.vaultProvider == nil {
+		return nil, fmt.Errorf("repository %s has secrets but no vault provider is configured", r.Name)
 	}
-	return r.organization.vaultProvider, nil
+	return r.owner.vaultProvider, nil
 }
