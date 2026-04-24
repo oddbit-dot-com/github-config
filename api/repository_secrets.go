@@ -27,7 +27,7 @@ func (r *Repository) ensureEnvironments(ctx *pulumi.Context, repo *github.Reposi
 	return nil
 }
 
-func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, opts []pulumi.ResourceOption) error {
+func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
 	if len(r.Secrets) == 0 {
 		return nil
 	}
@@ -46,7 +46,7 @@ func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, opts []pulumi.Resour
 		resourceName := fmt.Sprintf("github_actions_secret.%s.%s",
 			helpers.Slugify(r.Name), helpers.Slugify(secretName))
 		_, err = github.NewActionsSecret(ctx, resourceName, &github.ActionsSecretArgs{
-			Repository:     pulumi.String(r.Name),
+			Repository:     repo.Name,
 			SecretName:     pulumi.String(secretName),
 			PlaintextValue: value,
 		}, opts...)
