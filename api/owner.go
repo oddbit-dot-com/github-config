@@ -8,6 +8,12 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// ownerKind is implemented by Organization and User to identify which GitHub
+// API namespace ("orgs" or "users") to use when looking up app installations.
+type ownerKind interface {
+	githubAPIKind() string
+}
+
 // Owner holds configuration common to both Organization and User.
 // The name mirrors GitHub API terminology where an owner is either a user or an org.
 type Owner struct {
@@ -20,8 +26,8 @@ type Owner struct {
 	vaultProvider           *vault.Provider
 }
 
-func (o *Owner) ensureGithubProvider(ctx *pulumi.Context) error {
-	provider, err := CreateGitHubProvider(ctx, o.GithubProviderConfig, o.Name, "")
+func (o *Owner) ensureGithubProvider(ctx *pulumi.Context, kind ownerKind) error {
+	provider, err := CreateGitHubProvider(ctx, o.GithubProviderConfig, o.Name, "", kind.githubAPIKind())
 	if err != nil {
 		return fmt.Errorf("failed to create github provider for %s: %w", o.Name, err)
 	}

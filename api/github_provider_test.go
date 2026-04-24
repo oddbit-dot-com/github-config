@@ -46,7 +46,7 @@ func TestGitHubProviderExplicitTokenTakesPriority(t *testing.T) {
 
 	generatorCalled := false
 	old := installationTokenFunc
-	installationTokenFunc = func(_ *appCredentials, _ string) (string, error) {
+	installationTokenFunc = func(_ *appCredentials, _ string, _ string) (string, error) {
 		generatorCalled = true
 		return "app-token", nil
 	}
@@ -84,7 +84,7 @@ func TestGitHubProviderUsesAppCredentials(t *testing.T) {
 	t.Setenv("GITHUB_APP_PRIVATE_KEY", testPrivateKeyPEM(t))
 
 	old := installationTokenFunc
-	installationTokenFunc = func(_ *appCredentials, owner string) (string, error) {
+	installationTokenFunc = func(_ *appCredentials, owner string, _ string) (string, error) {
 		return "app-token-for-" + owner, nil
 	}
 	defer func() { installationTokenFunc = old }()
@@ -112,12 +112,74 @@ func TestGitHubProviderUsesAppCredentials(t *testing.T) {
 	}
 }
 
+func TestGitHubProviderUsesOrgsAPIForOrganization(t *testing.T) {
+	t.Setenv("GITHUB_APP_CLIENT_ID", "Iv1.abc123")
+	t.Setenv("GITHUB_APP_PRIVATE_KEY", testPrivateKeyPEM(t))
+
+	var capturedAPIKind string
+	old := installationTokenFunc
+	installationTokenFunc = func(_ *appCredentials, _ string, apiKind string) (string, error) {
+		capturedAPIKind = apiKind
+		return "app-token", nil
+	}
+	defer func() { installationTokenFunc = old }()
+
+	mocks := &mockMonitor{}
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		org := &Organization{
+			Owner: Owner{
+				Name:                 "testorg",
+				GithubProviderConfig: NewGithubProviderConfig(),
+			},
+		}
+		return org.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if capturedAPIKind != "orgs" {
+		t.Errorf("expected apiKind=orgs for Organization, got %q", capturedAPIKind)
+	}
+}
+
+func TestGitHubProviderUsesUsersAPIForUser(t *testing.T) {
+	t.Setenv("GITHUB_APP_CLIENT_ID", "Iv1.abc123")
+	t.Setenv("GITHUB_APP_PRIVATE_KEY", testPrivateKeyPEM(t))
+
+	var capturedAPIKind string
+	old := installationTokenFunc
+	installationTokenFunc = func(_ *appCredentials, _ string, apiKind string) (string, error) {
+		capturedAPIKind = apiKind
+		return "app-token", nil
+	}
+	defer func() { installationTokenFunc = old }()
+
+	mocks := &mockMonitor{}
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		user := &User{
+			Owner: Owner{
+				Name:                 "testuser",
+				GithubProviderConfig: NewGithubProviderConfig(),
+			},
+		}
+		return user.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if capturedAPIKind != "users" {
+		t.Errorf("expected apiKind=users for User, got %q", capturedAPIKind)
+	}
+}
+
 func TestGitHubProviderNoTokenWhenNoCredentials(t *testing.T) {
 	t.Setenv("GITHUB_APP_CLIENT_ID", "")
 	t.Setenv("GITHUB_APP_PRIVATE_KEY", "")
 
 	old := installationTokenFunc
-	installationTokenFunc = func(_ *appCredentials, _ string) (string, error) {
+	installationTokenFunc = func(_ *appCredentials, _ string, _ string) (string, error) {
 		panic("should not be called")
 	}
 	defer func() { installationTokenFunc = old }()
