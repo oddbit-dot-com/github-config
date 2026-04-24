@@ -20,16 +20,17 @@ var Organization = api.Organization{
 
 	Repositories: []*api.Repository{
 		{
-			Name: "github-config",
+			Name: "oddbit-infra",
 			RepositoryArgs: &github.RepositoryArgs{
-				Description: pulumi.String("Manage github configuration for oddbit.com organizations"),
+				Description: pulumi.String("Manage oddbit general infrastructure (vault, keycloak, ...)"),
 				AutoInit:    pulumi.Bool(false),
 			},
 		},
 		{
-			Name: "oddbit-auth",
+			Name: "github-config",
 			RepositoryArgs: &github.RepositoryArgs{
-				Description: pulumi.String("Oddbit.com authentication server (Keycloak)"),
+				Description: pulumi.String("Manage github configuration for oddbit.com organizations"),
+				AutoInit:    pulumi.Bool(false),
 			},
 		},
 		{
