@@ -10,14 +10,16 @@ import (
 )
 
 var Organization = api.Organization{
-	Name:                 "caara-races",
-	GithubProviderConfig: api.NewGithubProviderConfig(),
-	VaultProviderConfig: api.NewVaultProviderConfig().
-		WithMountPoint("caara-races").
-		WithToken(os.Getenv("VAULT_TOKEN_CAARA_RACES")).
-		WithJWTMount("github-actions").
-		WithJWT(os.Getenv("VAULT_JWT_CAARA_RACES")).
-		WithJWTRole("caara-races-reader"),
+	Owner: api.Owner{
+		Name:                 "caara-races",
+		GithubProviderConfig: api.NewGithubProviderConfig(),
+		VaultProviderConfig: api.NewVaultProviderConfig().
+			WithMountPoint("caara-races").
+			WithToken(os.Getenv("VAULT_TOKEN_CAARA_RACES")).
+			WithJWTMount("github-actions").
+			WithJWT(os.Getenv("VAULT_JWT_CAARA_RACES")).
+			WithJWTRole("caara-races-reader"),
+	},
 
 	Settings: &github.OrganizationSettingsArgs{
 		BillingEmail: pulumi.String("lars@oddbit.com"),
@@ -25,6 +27,17 @@ var Organization = api.Organization{
 
 	Members: api.Members{
 		"larsks": api.PermissionAdmin,
+	},
+
+	Teams: api.Teams{
+		"webworkers": api.Team{
+			Settings: &github.TeamArgs{
+				Description: pulumi.String("Website maintainers"),
+			},
+			Members: map[string]string{
+				"larsks": api.MembershipMaintainer,
+			},
+		},
 	},
 
 	Repositories: []*api.Repository{
@@ -67,17 +80,6 @@ var Organization = api.Organization{
 			BranchProtectionRules: api.BranchProtectionRules{},
 			Teams: map[string]string{
 				"webworkers": "push",
-			},
-		},
-	},
-
-	Teams: api.Teams{
-		"webworkers": api.Team{
-			Settings: &github.TeamArgs{
-				Description: pulumi.String("Website maintainers"),
-			},
-			Members: map[string]string{
-				"larsks": api.MembershipMaintainer,
 			},
 		},
 	},

@@ -68,14 +68,17 @@ type Repository struct {
 	// where each secret value is read from Vault.
 	EnvironmentSecrets map[string]ActionsSecrets
 
-	// Parent organization for org-mode
+	// Parent owner (organization or user) for owner-mode
 	// Used for defaults resolution and provider inheritance
 	// If nil, repository is in standalone mode
-	organization *Organization
+	owner *Owner
 }
 
 // Ensure provisions the repository and its branch protection rules
 func (r *Repository) Ensure(ctx *pulumi.Context) error {
+	if r.RepositoryArgs == nil {
+		r.RepositoryArgs = &github.RepositoryArgs{}
+	}
 	// Apply repository defaults
 	applyRepositoryDefaults(r.RepositoryArgs)
 
@@ -83,7 +86,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	r.RepositoryArgs.Name = pulumi.String(r.Name)
 
 	// Create provider from ProviderConfig if in standalone mode and config provided
-	if r.organization == nil && r.Provider == nil && r.GithubProviderConfig != nil {
+	if r.owner == nil && r.Provider == nil && r.GithubProviderConfig != nil {
 		provider, err := r.createStandaloneProvider(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to create provider from config for %s: %w", r.Name, err)
@@ -113,9 +116,9 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	// Set default branch if specified
 	if r.DefaultBranch != "" {
 		var bdResourceName string
-		if r.organization != nil {
+		if r.owner != nil {
 			bdResourceName = fmt.Sprintf("github_branch_default.%s.%s",
-				helpers.Slugify(r.organization.Name), helpers.Slugify(r.Name))
+				helpers.Slugify(r.owner.Name), helpers.Slugify(r.Name))
 		} else {
 			bdResourceName = fmt.Sprintf("github_branch_default.%s", helpers.Slugify(r.Name))
 		}
@@ -222,9 +225,8 @@ func (r *Repository) ensureCollaborators(ctx *pulumi.Context, repo *github.Repos
 
 // getProvider returns the appropriate provider for this repository
 func (r *Repository) getProvider() *github.Provider {
-	if r.organization != nil {
-		// Org mode: use org's provider
-		return r.organization.provider
+	if r.owner != nil {
+		return r.owner.githubProvider
 	}
 	// Standalone mode: use explicit provider or nil for default
 	return r.Provider
@@ -248,10 +250,10 @@ func (r *Repository) getBranchProtectionRules(repo *github.Repository) BranchPro
 		return result
 	}
 
-	// Check for org defaults
+	// Check for owner defaults
 	var template *github.BranchProtectionArgs
-	if r.organization != nil && r.organization.DefaultBranchProtection != nil {
-		template = r.organization.DefaultBranchProtection
+	if r.owner != nil && r.owner.DefaultBranchProtection != nil {
+		template = r.owner.DefaultBranchProtection
 	} else {
 		template = builtInDefaultBranchProtection()
 	}
@@ -268,9 +270,9 @@ func (r *Repository) getBranchProtectionRules(repo *github.Repository) BranchPro
 func (r *Repository) getIssueLabels(repo *github.Repository) IssueLabels {
 	result := make(IssueLabels)
 
-	// Step 1: Add organization labels (if any)
-	if r.organization != nil && r.organization.Labels != nil && len(r.organization.Labels) > 0 {
-		for name, args := range r.organization.Labels {
+	// Step 1: Add owner labels (if any)
+	if r.owner != nil && r.owner.Labels != nil && len(r.owner.Labels) > 0 {
+		for name, args := range r.owner.Labels {
 			result[name] = copyIssueLabelArgs(args, name)
 		}
 	}
@@ -295,8 +297,8 @@ func (r *Repository) getIssueLabels(repo *github.Repository) IssueLabels {
 // repoScope returns a slug that uniquely scopes resource names to this repository.
 // In org mode it returns "org.repo"; in standalone mode it returns "repo".
 func (r *Repository) repoScope() string {
-	if r.organization != nil {
-		return helpers.Slugify(r.organization.Name) + "." + helpers.Slugify(r.Name)
+	if r.owner != nil {
+		return helpers.Slugify(r.owner.Name) + "." + helpers.Slugify(r.Name)
 	}
 	return helpers.Slugify(r.Name)
 }

@@ -5,17 +5,12 @@ import (
 
 	"github.com/oddbit-dot-com/github-config/helpers"
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
-	vault "github.com/pulumi/pulumi-vault/sdk/v6/go/vault"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 // Organization defines configuration for a GitHub organization
 type Organization struct {
-	// Name of the organization (used as GitHub owner in provider)
-	Name string
-
-	// Optional provider configuration (token). If nil, uses default credentials.
-	GithubProviderConfig *GithubProviderConfig
+	Owner
 
 	// Organization settings (billing email, blog, description, etc.)
 	Settings *github.OrganizationSettingsArgs
@@ -26,24 +21,10 @@ type Organization struct {
 	// Teams
 	Teams Teams
 
-	// Optional default branch protection applied to all repositories
-	// unless they specify their own BranchProtectionRules
-	DefaultBranchProtection *github.BranchProtectionArgs
-
-	// Issue labels applied to all repositories in this organization
-	// Repositories can add additional labels via their own Labels field (union behavior)
-	// If nil, repositories use built-in GitHub defaults (unless they specify their own Labels)
-	Labels IssueLabels
+	Secrets OrgActionsSecrets
 
 	// Repository configurations
 	Repositories []*Repository
-
-	// Cached provider instance (created in Ensure)
-	provider *github.Provider
-
-	VaultProviderConfig *VaultProviderConfig
-	Secrets             OrgActionsSecrets
-	vaultProvider       *vault.Provider
 }
 
 // Members maps usernames to roles
@@ -58,51 +39,28 @@ type Team struct {
 
 // Ensure provisions all resources for this organization
 func (o *Organization) Ensure(ctx *pulumi.Context) error {
-	// Create organization-specific provider
-	provider, err := o.createProvider(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to create provider for %s: %w", o.Name, err)
+	if err := o.ensureGithubProvider(ctx); err != nil {
+		return err
 	}
-
-	// Store provider for repositories to use
-	o.provider = provider
-
-	vaultProvider, err := CreateVaultProvider(ctx, o.VaultProviderConfig, o.Name)
-	if err != nil {
-		return fmt.Errorf("failed to create vault provider for %s: %w", o.Name, err)
+	if err := o.ensureVaultProvider(ctx); err != nil {
+		return err
 	}
-	o.vaultProvider = vaultProvider
-
-	if err := o.ensureOrgSecrets(ctx, provider); err != nil {
+	if err := o.ensureOrgSecrets(ctx, o.githubProvider); err != nil {
 		return fmt.Errorf("failed to ensure org secrets for %s: %w", o.Name, err)
 	}
-
-	// Provision organization settings
-	if err := o.ensureSettings(ctx, provider); err != nil {
+	if err := o.ensureSettings(ctx, o.githubProvider); err != nil {
 		return fmt.Errorf("failed to ensure settings for %s: %w", o.Name, err)
 	}
-
-	// Provision members
-	if err := o.ensureMembers(ctx, provider); err != nil {
+	if err := o.ensureMembers(ctx, o.githubProvider); err != nil {
 		return fmt.Errorf("failed to ensure members for %s: %w", o.Name, err)
 	}
-
-	// Provision teams
-	if err := o.ensureTeams(ctx, provider); err != nil {
+	if err := o.ensureTeams(ctx, o.githubProvider); err != nil {
 		return fmt.Errorf("failed to ensure teams for %s: %w", o.Name, err)
 	}
-
-	// Provision repositories
-	if err := o.ensureRepositories(ctx); err != nil {
+	if err := o.ensureRepositories(ctx, o.Repositories); err != nil {
 		return fmt.Errorf("failed to ensure repositories for %s: %w", o.Name, err)
 	}
-
 	return nil
-}
-
-// createProvider creates a GitHub provider for this organization
-func (o *Organization) createProvider(ctx *pulumi.Context) (*github.Provider, error) {
-	return CreateGitHubProvider(ctx, o.GithubProviderConfig, o.Name, "")
 }
 
 // ensureSettings provisions organization settings
@@ -131,19 +89,6 @@ func (o *Organization) ensureMembers(ctx *pulumi.Context, provider *github.Provi
 			helpers.Slugify(o.Name), helpers.Slugify(username))
 		if _, err := github.NewMembership(ctx, resourceName, membershipArgs, pulumi.Provider(provider)); err != nil {
 			return fmt.Errorf("failed to create membership for %s/%s: %w", o.Name, username, err)
-		}
-	}
-	return nil
-}
-
-// ensureRepositories provisions repositories and their branch protection rules
-func (o *Organization) ensureRepositories(ctx *pulumi.Context) error {
-	for _, repo := range o.Repositories {
-		// Set organization reference for provider and defaults inheritance
-		repo.organization = o
-
-		if err := repo.Ensure(ctx); err != nil {
-			return fmt.Errorf("failed to ensure repository %s/%s: %w", o.Name, repo.Name, err)
 		}
 	}
 	return nil

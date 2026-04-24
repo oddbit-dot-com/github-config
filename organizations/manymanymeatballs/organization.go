@@ -6,10 +6,12 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// Organization defines the baystateradio GitHub organization configuration
+// Organization defines the manymanymeatballs GitHub organization configuration
 var Organization = api.Organization{
-	Name:                 "manymanymeatballs",
-	GithubProviderConfig: api.NewGithubProviderConfig(),
+	Owner: api.Owner{
+		Name:                 "manymanymeatballs",
+		GithubProviderConfig: api.NewGithubProviderConfig(),
+	},
 
 	Settings: &github.OrganizationSettingsArgs{
 		BillingEmail: pulumi.String("lars@oddbit.com"),
