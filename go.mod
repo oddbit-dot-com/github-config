@@ -3,6 +3,7 @@ module github.com/oddbit-dot-com/github-config
 go 1.26.0
 
 require (
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/pulumi/pulumi-github/sdk/v6 v6.12.2
 	github.com/pulumi/pulumi-vault/sdk/v6 v6.7.4
 	github.com/pulumi/pulumi/sdk/v3 v3.230.0

@@ -99,4 +99,3 @@ func (r *Repository) getVaultProvider() (*vault.Provider, error) {
 	}
 	return r.organization.vaultProvider, nil
 }
-

@@ -45,4 +45,3 @@ func (o *Organization) ensureOrgSecrets(ctx *pulumi.Context, githubProvider *git
 	}
 	return nil
 }
-

@@ -63,14 +63,24 @@ func CreateGitHubProvider(
 		return nil, nil
 	}
 
-	// Create provider args
 	providerArgs := &github.ProviderArgs{
 		Owner: pulumi.String(owner),
 	}
 
-	// Set token if provided
-	if config != nil && config.Token != nil {
+	switch {
+	case config != nil && config.Token != nil:
+		// Priority 1: explicit token always wins
 		providerArgs.Token = pulumi.String(*config.Token)
+	default:
+		// Priority 2: app credentials from environment generate a per-org installation token
+		// Priority 3: fall through to GITHUB_TOKEN env var / gh CLI (no token set)
+		if creds, ok := loadAppCredentials(); ok {
+			token, err := installationTokenFunc(creds, owner)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate installation token for %s: %w", owner, err)
+			}
+			providerArgs.Token = pulumi.String(token)
+		}
 	}
 
 	// Build resource name
