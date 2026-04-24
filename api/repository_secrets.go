@@ -19,7 +19,7 @@ func (r *Repository) ensureEnvironments(ctx *pulumi.Context, repo *github.Reposi
 		argsCopy.Environment = pulumi.String(envName)
 
 		resourceName := fmt.Sprintf("github_repository_environment.%s.%s",
-			helpers.Slugify(r.Name), helpers.Slugify(envName))
+			r.repoScope(), helpers.Slugify(envName))
 		if _, err := github.NewRepositoryEnvironment(ctx, resourceName, &argsCopy, opts...); err != nil {
 			return fmt.Errorf("failed to create environment %s for %s: %w", envName, r.Name, err)
 		}
@@ -44,7 +44,7 @@ func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, repo *github.Reposit
 		}
 
 		resourceName := fmt.Sprintf("github_actions_secret.%s.%s",
-			helpers.Slugify(r.Name), helpers.Slugify(secretName))
+			r.repoScope(), helpers.Slugify(secretName))
 		_, err = github.NewActionsSecret(ctx, resourceName, &github.ActionsSecretArgs{
 			Repository:     repo.Name,
 			SecretName:     pulumi.String(secretName),
@@ -78,7 +78,7 @@ func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.
 			}
 
 			resourceName := fmt.Sprintf("github_actions_environment_secret.%s.%s.%s",
-				helpers.Slugify(r.Name), helpers.Slugify(envName), helpers.Slugify(secretName))
+				r.repoScope(), helpers.Slugify(envName), helpers.Slugify(secretName))
 			_, err = github.NewActionsEnvironmentSecret(ctx, resourceName, &github.ActionsEnvironmentSecretArgs{
 				Repository:     repo.Name,
 				Environment:    pulumi.String(envName),

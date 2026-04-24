@@ -104,7 +104,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	}
 
 	// Create repository
-	resourceName := fmt.Sprintf("github_repository.%s", helpers.Slugify(r.Name))
+	resourceName := fmt.Sprintf("github_repository.%s", r.repoScope())
 	repo, err := github.NewRepository(ctx, resourceName, r.RepositoryArgs, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to create repository %s: %w", r.Name, err)
@@ -134,7 +134,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	// Create branch protection rules
 	for pattern, args := range branchRules {
 		resourceName := fmt.Sprintf("github_branch_protection.%s.%s",
-			helpers.Slugify(r.Name), helpers.Slugify(pattern))
+			r.repoScope(), helpers.Slugify(pattern))
 
 		// By default pulumi attempts to create before delete when performing a replace
 		// operation, but you can't have more than one branch protection rule for the
@@ -164,7 +164,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	}
 
 	// Create single IssueLabels resource for all labels
-	resourceName = fmt.Sprintf("github_issue_labels.%s", helpers.Slugify(r.Name))
+	resourceName = fmt.Sprintf("github_issue_labels.%s", r.repoScope())
 	_, err = github.NewIssueLabels(ctx, resourceName, &github.IssueLabelsArgs{
 		Repository: repo.Name,
 		Labels:     labelArray,
@@ -191,7 +191,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 func (r *Repository) ensureTeamAccess(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
 	for teamSlug, permission := range r.Teams {
 		resourceName := fmt.Sprintf("github_team_repository.%s.%s",
-			helpers.Slugify(r.Name), helpers.Slugify(teamSlug))
+			r.repoScope(), helpers.Slugify(teamSlug))
 		_, err := github.NewTeamRepository(ctx, resourceName, &github.TeamRepositoryArgs{
 			TeamId:     pulumi.String(teamSlug),
 			Repository: repo.Name,
@@ -207,7 +207,7 @@ func (r *Repository) ensureTeamAccess(ctx *pulumi.Context, repo *github.Reposito
 func (r *Repository) ensureCollaborators(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
 	for username, permission := range r.Collaborators {
 		resourceName := fmt.Sprintf("github_repository_collaborator.%s.%s",
-			helpers.Slugify(r.Name), helpers.Slugify(username))
+			r.repoScope(), helpers.Slugify(username))
 		_, err := github.NewRepositoryCollaborator(ctx, resourceName, &github.RepositoryCollaboratorArgs{
 			Repository: repo.Name,
 			Username:   pulumi.String(username),
@@ -290,4 +290,13 @@ func (r *Repository) getIssueLabels(repo *github.Repository) IssueLabels {
 	}
 
 	return result
+}
+
+// repoScope returns a slug that uniquely scopes resource names to this repository.
+// In org mode it returns "org.repo"; in standalone mode it returns "repo".
+func (r *Repository) repoScope() string {
+	if r.organization != nil {
+		return helpers.Slugify(r.organization.Name) + "." + helpers.Slugify(r.Name)
+	}
+	return helpers.Slugify(r.Name)
 }
