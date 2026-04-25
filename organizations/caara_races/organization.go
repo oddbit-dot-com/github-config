@@ -69,6 +69,10 @@ var Organization = api.Organization{
 					Key:      "service-account",
 					Encoding: api.EncodingBase64,
 				},
+				"FIREBASE_SERVICE_ACCOUNT": api.VaultSecretRef{
+					Path: "firebase",
+					Key:  "service-account",
+				},
 			},
 		},
 		{
