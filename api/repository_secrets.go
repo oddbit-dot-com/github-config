@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 
-	"github.com/oddbit-dot-com/github-config/helpers"
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
 	vault "github.com/pulumi/pulumi-vault/sdk/v6/go/vault"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -18,8 +17,7 @@ func (r *Repository) ensureEnvironments(ctx *pulumi.Context, repo *github.Reposi
 		argsCopy.Repository = repo.Name
 		argsCopy.Environment = pulumi.String(envName)
 
-		resourceName := fmt.Sprintf("github_repository_environment.%s.%s",
-			r.repoScope(), helpers.Slugify(envName))
+		resourceName := r.resourceName("github_repository_environment", envName)
 		if _, err := github.NewRepositoryEnvironment(ctx, resourceName, &argsCopy, opts...); err != nil {
 			return fmt.Errorf("failed to create environment %s for %s: %w", envName, r.Name, err)
 		}
@@ -36,25 +34,19 @@ func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, repo *github.Reposit
 		return err
 	}
 
-	mountPoint := r.owner.VaultProviderConfig.MountPoint
-	for secretName, ref := range r.Secrets {
-		value, err := readVaultSecret(ctx, mountPoint, vaultProvider, ref)
-		if err != nil {
-			return fmt.Errorf("failed to read vault secret for %s/%s: %w", r.Name, secretName, err)
-		}
-
-		resourceName := fmt.Sprintf("github_actions_secret.%s.%s",
-			r.repoScope(), helpers.Slugify(secretName))
-		_, err = github.NewActionsSecret(ctx, resourceName, &github.ActionsSecretArgs{
-			Repository:     repo.Name,
-			SecretName:     pulumi.String(secretName),
-			PlaintextValue: value,
-		}, opts...)
-		if err != nil {
-			return fmt.Errorf("failed to create repo secret %s/%s: %w", r.Name, secretName, err)
-		}
-	}
-	return nil
+	return provisionSecrets(ctx, r.owner.VaultProviderConfig.MountPoint, vaultProvider, r.Secrets,
+		func(secretName string, value pulumi.StringPtrInput) error {
+			resourceName := r.resourceName("github_actions_secret", secretName)
+			_, err := github.NewActionsSecret(ctx, resourceName, &github.ActionsSecretArgs{
+				Repository:     repo.Name,
+				SecretName:     pulumi.String(secretName),
+				PlaintextValue: value,
+			}, opts...)
+			if err != nil {
+				return fmt.Errorf("failed to create repo secret %s/%s: %w", r.Name, secretName, err)
+			}
+			return nil
+		})
 }
 
 func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
@@ -71,23 +63,21 @@ func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.
 		if _, declared := r.Environments[envName]; !declared {
 			return fmt.Errorf("environment %q referenced in EnvironmentSecrets of %s is not declared in Environments", envName, r.Name)
 		}
-		for secretName, ref := range secrets {
-			value, err := readVaultSecret(ctx, mountPoint, vaultProvider, ref)
-			if err != nil {
-				return fmt.Errorf("failed to read vault secret for %s/%s/%s: %w", r.Name, envName, secretName, err)
-			}
-
-			resourceName := fmt.Sprintf("github_actions_environment_secret.%s.%s.%s",
-				r.repoScope(), helpers.Slugify(envName), helpers.Slugify(secretName))
-			_, err = github.NewActionsEnvironmentSecret(ctx, resourceName, &github.ActionsEnvironmentSecretArgs{
-				Repository:     repo.Name,
-				Environment:    pulumi.String(envName),
-				SecretName:     pulumi.String(secretName),
-				PlaintextValue: value,
-			}, opts...)
-			if err != nil {
-				return fmt.Errorf("failed to create env secret %s/%s/%s: %w", r.Name, envName, secretName, err)
-			}
+		if err := provisionSecrets(ctx, mountPoint, vaultProvider, secrets,
+			func(secretName string, value pulumi.StringPtrInput) error {
+				resourceName := r.resourceName("github_actions_environment_secret", envName, secretName)
+				_, err := github.NewActionsEnvironmentSecret(ctx, resourceName, &github.ActionsEnvironmentSecretArgs{
+					Repository:     repo.Name,
+					Environment:    pulumi.String(envName),
+					SecretName:     pulumi.String(secretName),
+					PlaintextValue: value,
+				}, opts...)
+				if err != nil {
+					return fmt.Errorf("failed to create env secret %s/%s/%s: %w", r.Name, envName, secretName, err)
+				}
+				return nil
+			}); err != nil {
+			return err
 		}
 	}
 	return nil

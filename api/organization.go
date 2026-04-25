@@ -47,16 +47,21 @@ func (o *Organization) Ensure(ctx *pulumi.Context) error {
 	if err := o.ensureVaultProvider(ctx); err != nil {
 		return err
 	}
+	var opts []pulumi.ResourceOption
+	if o.githubProvider != nil {
+		opts = append(opts, pulumi.Provider(o.githubProvider))
+	}
+
 	if err := o.ensureOrgSecrets(ctx, o.githubProvider); err != nil {
 		return fmt.Errorf("failed to ensure org secrets for %s: %w", o.Name, err)
 	}
-	if err := o.ensureSettings(ctx, o.githubProvider); err != nil {
+	if err := o.ensureSettings(ctx, opts); err != nil {
 		return fmt.Errorf("failed to ensure settings for %s: %w", o.Name, err)
 	}
-	if err := o.ensureMembers(ctx, o.githubProvider); err != nil {
+	if err := o.ensureMembers(ctx, opts); err != nil {
 		return fmt.Errorf("failed to ensure members for %s: %w", o.Name, err)
 	}
-	if err := o.ensureTeams(ctx, o.githubProvider); err != nil {
+	if err := o.ensureTeams(ctx, opts); err != nil {
 		return fmt.Errorf("failed to ensure teams for %s: %w", o.Name, err)
 	}
 	if err := o.ensureRepositories(ctx, o.Repositories); err != nil {
@@ -66,14 +71,14 @@ func (o *Organization) Ensure(ctx *pulumi.Context) error {
 }
 
 // ensureSettings provisions organization settings
-func (o *Organization) ensureSettings(ctx *pulumi.Context, provider *github.Provider) error {
+func (o *Organization) ensureSettings(ctx *pulumi.Context, opts []pulumi.ResourceOption) error {
 	if o.Settings == nil {
 		return nil
 	}
 
 	o.Settings.Name = pulumi.String(o.Name)
-	resourceName := fmt.Sprintf("github_organization_settings.%s", helpers.Slugify(o.Name))
-	_, err := github.NewOrganizationSettings(ctx, resourceName, o.Settings, pulumi.Provider(provider))
+	resourceName := helpers.ResourceName("github_organization_settings", o.Name)
+	_, err := github.NewOrganizationSettings(ctx, resourceName, o.Settings, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to create organization settings for %s: %w", o.Name, err)
 	}
@@ -81,15 +86,14 @@ func (o *Organization) ensureSettings(ctx *pulumi.Context, provider *github.Prov
 }
 
 // ensureMembers provisions organization memberships
-func (o *Organization) ensureMembers(ctx *pulumi.Context, provider *github.Provider) error {
+func (o *Organization) ensureMembers(ctx *pulumi.Context, opts []pulumi.ResourceOption) error {
 	for username, role := range o.Members {
 		membershipArgs := &github.MembershipArgs{
 			Username: pulumi.String(username),
 			Role:     pulumi.String(role),
 		}
-		resourceName := fmt.Sprintf("github_organization_membership.%s.%s",
-			helpers.Slugify(o.Name), helpers.Slugify(username))
-		if _, err := github.NewMembership(ctx, resourceName, membershipArgs, pulumi.Provider(provider)); err != nil {
+		resourceName := helpers.ResourceName("github_organization_membership", o.Name, username)
+		if _, err := github.NewMembership(ctx, resourceName, membershipArgs, opts...); err != nil {
 			return fmt.Errorf("failed to create membership for %s/%s: %w", o.Name, username, err)
 		}
 	}

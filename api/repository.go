@@ -107,7 +107,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	}
 
 	// Create repository
-	resourceName := fmt.Sprintf("github_repository.%s", r.repoScope())
+	resourceName := r.resourceName("github_repository")
 	repo, err := github.NewRepository(ctx, resourceName, r.RepositoryArgs, opts...)
 	if err != nil {
 		return fmt.Errorf("failed to create repository %s: %w", r.Name, err)
@@ -117,10 +117,9 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	if r.DefaultBranch != "" {
 		var bdResourceName string
 		if r.owner != nil {
-			bdResourceName = fmt.Sprintf("github_branch_default.%s.%s",
-				helpers.Slugify(r.owner.Name), helpers.Slugify(r.Name))
+			bdResourceName = helpers.ResourceName("github_branch_default", r.owner.Name, r.Name)
 		} else {
-			bdResourceName = fmt.Sprintf("github_branch_default.%s", helpers.Slugify(r.Name))
+			bdResourceName = helpers.ResourceName("github_branch_default", r.Name)
 		}
 		_, err = github.NewBranchDefault(ctx, bdResourceName, &github.BranchDefaultArgs{
 			Repository: repo.Name,
@@ -136,8 +135,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 
 	// Create branch protection rules
 	for pattern, args := range branchRules {
-		resourceName := fmt.Sprintf("github_branch_protection.%s.%s",
-			r.repoScope(), helpers.Slugify(pattern))
+		resourceName := r.resourceName("github_branch_protection", pattern)
 
 		// By default pulumi attempts to create before delete when performing a replace
 		// operation, but you can't have more than one branch protection rule for the
@@ -167,7 +165,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 	}
 
 	// Create single IssueLabels resource for all labels
-	resourceName = fmt.Sprintf("github_issue_labels.%s", r.repoScope())
+	resourceName = r.resourceName("github_issue_labels")
 	_, err = github.NewIssueLabels(ctx, resourceName, &github.IssueLabelsArgs{
 		Repository: repo.Name,
 		Labels:     labelArray,
@@ -193,8 +191,7 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 
 func (r *Repository) ensureTeamAccess(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
 	for teamSlug, permission := range r.Teams {
-		resourceName := fmt.Sprintf("github_team_repository.%s.%s",
-			r.repoScope(), helpers.Slugify(teamSlug))
+		resourceName := r.resourceName("github_team_repository", teamSlug)
 		_, err := github.NewTeamRepository(ctx, resourceName, &github.TeamRepositoryArgs{
 			TeamId:     pulumi.String(teamSlug),
 			Repository: repo.Name,
@@ -209,8 +206,7 @@ func (r *Repository) ensureTeamAccess(ctx *pulumi.Context, repo *github.Reposito
 
 func (r *Repository) ensureCollaborators(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
 	for username, permission := range r.Collaborators {
-		resourceName := fmt.Sprintf("github_repository_collaborator.%s.%s",
-			r.repoScope(), helpers.Slugify(username))
+		resourceName := r.resourceName("github_repository_collaborator", username)
 		_, err := github.NewRepositoryCollaborator(ctx, resourceName, &github.RepositoryCollaboratorArgs{
 			Repository: repo.Name,
 			Username:   pulumi.String(username),
@@ -296,9 +292,12 @@ func (r *Repository) getIssueLabels(repo *github.Repository) IssueLabels {
 
 // repoScope returns a slug that uniquely scopes resource names to this repository.
 // In org mode it returns "org.repo"; in standalone mode it returns "repo".
-func (r *Repository) repoScope() string {
+func (r *Repository) resourceName(prefix string, extra ...string) string {
+	parts := []string{prefix}
 	if r.owner != nil {
-		return helpers.Slugify(r.owner.Name) + "." + helpers.Slugify(r.Name)
+		parts = append(parts, r.owner.Name)
 	}
-	return helpers.Slugify(r.Name)
+	parts = append(parts, r.Name)
+	parts = append(parts, extra...)
+	return helpers.ResourceName(parts...)
 }

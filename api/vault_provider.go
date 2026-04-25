@@ -69,6 +69,25 @@ func readVaultSecret(ctx *pulumi.Context, mountPoint string, vaultProvider *vaul
 	return pulumi.String(v).ToStringPtrOutput(), nil
 }
 
+func provisionSecrets(
+	ctx *pulumi.Context,
+	mountPoint string,
+	vaultProvider *vault.Provider,
+	secrets ActionsSecrets,
+	create func(secretName string, value pulumi.StringPtrInput) error,
+) error {
+	for secretName, ref := range secrets {
+		value, err := readVaultSecret(ctx, mountPoint, vaultProvider, ref)
+		if err != nil {
+			return fmt.Errorf("failed to read vault secret for %s: %w", secretName, err)
+		}
+		if err := create(secretName, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type OrgSecretRef struct {
 	VaultSecretRef
 	Visibility string
@@ -169,6 +188,6 @@ func CreateVaultProvider(ctx *pulumi.Context, config *VaultProviderConfig, owner
 		return nil, fmt.Errorf("vault auth not configured for %s: set VAULT_JWT (and configure a JWT role) or VAULT_TOKEN", ownerName)
 	}
 
-	resourceName := fmt.Sprintf("vault-provider.%s", helpers.Slugify(ownerName))
+	resourceName := helpers.ResourceName("vault-provider", ownerName)
 	return vault.NewProvider(ctx, resourceName, providerArgs)
 }

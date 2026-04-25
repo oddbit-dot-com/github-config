@@ -32,8 +32,7 @@ func (o *Organization) ensureOrgSecrets(ctx *pulumi.Context, githubProvider *git
 			visibility = VisibilityAll
 		}
 
-		resourceName := fmt.Sprintf("github_actions_organization_secret.%s.%s",
-			helpers.Slugify(o.Name), helpers.Slugify(secretName))
+		resourceName := helpers.ResourceName("github_actions_organization_secret", o.Name, secretName)
 		_, err = github.NewActionsOrganizationSecret(ctx, resourceName, &github.ActionsOrganizationSecretArgs{
 			SecretName:     pulumi.String(secretName),
 			Visibility:     pulumi.String(visibility),

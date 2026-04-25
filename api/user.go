@@ -44,15 +44,19 @@ func (u *User) Ensure(ctx *pulumi.Context) error {
 	return nil
 }
 
-func (u *User) ensureSshKeys(ctx *pulumi.Context) error {
+func (u *User) keyProvisionOpts() []pulumi.ResourceOption {
 	var opts []pulumi.ResourceOption
 	if u.githubProvider != nil {
 		opts = append(opts, pulumi.Provider(u.githubProvider))
 	}
-	sshOpts := append(opts, pulumi.DeleteBeforeReplace(true))
+	return append(opts, pulumi.DeleteBeforeReplace(true))
+}
+
+func (u *User) ensureSshKeys(ctx *pulumi.Context) error {
+	opts := u.keyProvisionOpts()
 	for i, key := range u.SshKeys {
-		resourceName := fmt.Sprintf("github_user_ssh_key.%s.%d", helpers.Slugify(u.Name), i)
-		if _, err := github.NewUserSshKey(ctx, resourceName, key, sshOpts...); err != nil {
+		resourceName := helpers.ResourceName("github_user_ssh_key", u.Name, fmt.Sprintf("%d", i))
+		if _, err := github.NewUserSshKey(ctx, resourceName, key, opts...); err != nil {
 			return fmt.Errorf("failed to create SSH key %d for %s: %w", i, u.Name, err)
 		}
 	}
@@ -60,14 +64,10 @@ func (u *User) ensureSshKeys(ctx *pulumi.Context) error {
 }
 
 func (u *User) ensureGpgKeys(ctx *pulumi.Context) error {
-	var opts []pulumi.ResourceOption
-	if u.githubProvider != nil {
-		opts = append(opts, pulumi.Provider(u.githubProvider))
-	}
-	gpgOpts := append(opts, pulumi.DeleteBeforeReplace(true))
+	opts := u.keyProvisionOpts()
 	for i, key := range u.GpgKeys {
-		resourceName := fmt.Sprintf("github_user_gpg_key.%s.%d", helpers.Slugify(u.Name), i)
-		if _, err := github.NewUserGpgKey(ctx, resourceName, key, gpgOpts...); err != nil {
+		resourceName := helpers.ResourceName("github_user_gpg_key", u.Name, fmt.Sprintf("%d", i))
+		if _, err := github.NewUserGpgKey(ctx, resourceName, key, opts...); err != nil {
 			return fmt.Errorf("failed to create GPG key %d for %s: %w", i, u.Name, err)
 		}
 	}
