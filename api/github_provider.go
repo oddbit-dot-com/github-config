@@ -85,9 +85,11 @@ func CreateGitHubProvider(
 	}
 
 	// Build resource name
-	resourceName := fmt.Sprintf("github-provider.%s", helpers.Slugify(owner))
+	var resourceName string
 	if resourceNameSuffix != "" {
-		resourceName = fmt.Sprintf("%s.%s", resourceName, helpers.Slugify(resourceNameSuffix))
+		resourceName = helpers.ResourceName("github-provider", owner, resourceNameSuffix)
+	} else {
+		resourceName = helpers.ResourceName("github-provider", owner)
 	}
 
 	return github.NewProvider(ctx, resourceName, providerArgs) //, pulumi.IgnoreChanges([]string{"token"}))

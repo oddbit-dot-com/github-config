@@ -9,7 +9,7 @@ import (
 )
 
 // ensureTeams provisions teams and their memberships
-func (o *Organization) ensureTeams(ctx *pulumi.Context, provider *github.Provider) error {
+func (o *Organization) ensureTeams(ctx *pulumi.Context, opts []pulumi.ResourceOption) error {
 	for teamKey, teamConfig := range o.Teams {
 		// Build team args — use Settings if provided, otherwise start with empty args
 		var args *github.TeamArgs
@@ -26,8 +26,8 @@ func (o *Organization) ensureTeams(ctx *pulumi.Context, provider *github.Provide
 		}
 
 		// Create team
-		resourceName := fmt.Sprintf("github_team.%s.%s", helpers.Slugify(o.Name), helpers.Slugify(teamKey))
-		team, err := github.NewTeam(ctx, resourceName, args, pulumi.Provider(provider))
+		resourceName := helpers.ResourceName("github_team", o.Name, teamKey)
+		team, err := github.NewTeam(ctx, resourceName, args, opts...)
 		if err != nil {
 			return fmt.Errorf("failed to create team %s (%s): %w", o.Name, teamKey, err)
 		}
@@ -42,11 +42,11 @@ func (o *Organization) ensureTeams(ctx *pulumi.Context, provider *github.Provide
 				})
 			}
 
-			membersResourceName := fmt.Sprintf("github_team_members.%s.%s", helpers.Slugify(o.Name), helpers.Slugify(teamKey))
+			membersResourceName := helpers.ResourceName("github_team_members", o.Name, teamKey)
 			_, err = github.NewTeamMembers(ctx, membersResourceName, &github.TeamMembersArgs{
 				TeamId:  team.ID(),
 				Members: members,
-			}, pulumi.Provider(provider))
+			}, opts...)
 			if err != nil {
 				return fmt.Errorf("failed to create team members for %s (%s): %w", o.Name, teamKey, err)
 			}
