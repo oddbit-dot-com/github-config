@@ -32,7 +32,7 @@ var Organization = api.Organization{
 				HomepageUrl: pulumi.String("https://manymanymeatballs.com"),
 				AutoInit:    pulumi.Bool(false),
 				Pages: &github.RepositoryPagesArgs{
-					BuildType: pulumi.String(api.PageBuildLegacy),
+					BuildType: pulumi.String(api.PagesBuildLegacy),
 					Cname:     pulumi.String("manymanymeatballs.com"),
 					Source: &github.RepositoryPagesSourceArgs{
 						Branch: pulumi.String("gh-pages"),

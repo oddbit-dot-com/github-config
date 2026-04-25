@@ -2,12 +2,13 @@ package main
 
 import (
 	"github.com/oddbit-dot-com/github-config/api"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
 	"github.com/oddbit-dot-com/github-config/organizations/baystateradio"
 	"github.com/oddbit-dot-com/github-config/organizations/caara_races"
 	"github.com/oddbit-dot-com/github-config/organizations/manymanymeatballs"
 	"github.com/oddbit-dot-com/github-config/organizations/oddbit_dot_com"
 	"github.com/oddbit-dot-com/github-config/users/larsks"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func main() {

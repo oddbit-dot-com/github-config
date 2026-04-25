@@ -29,7 +29,7 @@ func (o *Organization) ensureOrgSecrets(ctx *pulumi.Context, githubProvider *git
 
 		visibility := ref.Visibility
 		if visibility == "" {
-			visibility = "all"
+			visibility = VisibilityAll
 		}
 
 		resourceName := fmt.Sprintf("github_actions_organization_secret.%s.%s",

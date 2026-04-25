@@ -16,12 +16,13 @@ const (
 )
 
 const (
+	VisibilityAll      = "all"
 	VisibilityPrivate  = "private"
 	VisibilityPublic   = "public"
 	VisibilitySelected = "selected"
 )
 
 const (
-	PageBuildLegacy   = "legacy"
-	PageBuildWorkflow = "workflow"
+	PagesBuildLegacy   = "legacy"
+	PagesBuildWorkflow = "workflow"
 )
