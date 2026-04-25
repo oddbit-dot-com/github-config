@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -47,6 +48,16 @@ type LiteralSecretRef struct {
 	Value string
 }
 
+// LiteralSecretRef represents a literal string value.
 func (r *LiteralSecretRef) Resolve(_ *pulumi.Context) (pulumi.StringOutput, error) {
 	return pulumi.String(r.Value).ToStringOutput(), nil
+}
+
+// EnvSecretRef represents a value stored in an environment variable.
+type EnvSecretRef struct {
+	Name string
+}
+
+func (r *EnvSecretRef) Resolve(_ *pulumi.Context) (pulumi.StringOutput, error) {
+	return pulumi.String(os.Getenv(r.Name)).ToStringOutput(), nil
 }
