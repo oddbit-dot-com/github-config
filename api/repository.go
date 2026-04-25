@@ -78,7 +78,12 @@ type Repository struct {
 }
 
 type Environments map[string]*github.RepositoryEnvironmentArgs
-type DeployKeys map[string]*github.RepositoryDeployKeyArgs
+type DeployKey struct {
+	Key      SecretRef
+	ReadOnly *bool
+}
+
+type DeployKeys map[string]*DeployKey
 type EnvironmentSecrets map[string]ActionsSecrets
 
 // Ensure provisions the repository and its branch protection rules
@@ -231,16 +236,33 @@ func (r *Repository) ensureCollaborators(ctx *pulumi.Context, repo *github.Repos
 }
 
 func (r *Repository) ensureDeployKeys(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
-	for title, args := range r.DeployKeys {
-		if args == nil {
-			args = &github.RepositoryDeployKeyArgs{}
+	if r.owner != nil && r.owner.vaultProvider != nil {
+		for _, dk := range r.DeployKeys {
+			if v, ok := dk.Key.(*VaultSecretRef); ok {
+				v.provider = r.owner.vaultProvider
+				v.mountPoint = r.owner.VaultProviderConfig.MountPoint
+			}
 		}
-		argsCopy := *args
-		argsCopy.Repository = repo.Name
-		argsCopy.Title = pulumi.String(title)
+	}
+
+	for title, dk := range r.DeployKeys {
+		key, err := dk.Key.Resolve(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to resolve deploy key %s for %s: %w", title, r.Name, err)
+		}
+
+		readOnly := true
+		if dk.ReadOnly != nil {
+			readOnly = *dk.ReadOnly
+		}
 
 		resourceName := r.resourceName("github_repository_deploy_key", title)
-		if _, err := github.NewRepositoryDeployKey(ctx, resourceName, &argsCopy, opts...); err != nil {
+		if _, err := github.NewRepositoryDeployKey(ctx, resourceName, &github.RepositoryDeployKeyArgs{
+			Repository: repo.Name,
+			Title:      pulumi.String(title),
+			Key:        key,
+			ReadOnly:   pulumi.Bool(readOnly),
+		}, opts...); err != nil {
 			return fmt.Errorf("failed to create deploy key %s for %s: %w", title, r.Name, err)
 		}
 	}

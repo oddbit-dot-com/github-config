@@ -83,8 +83,11 @@ var Organization = api.Organization{
 		{
 			Name: "members-only",
 			DeployKeys: api.DeployKeys{
-				"publishing": &github.RepositoryDeployKeyArgs{
-					Key: pulumi.String("ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFvIMc5sGfmbpjfr6ux5nqJFCnWNJjbr/h/NmWY4jmSDLDXf9V+xA0ViOVrkJVAKb2bfVIYxPM3fJhvB6TIKRoI="),
+				"publishing": &api.DeployKey{
+					Key: &api.VaultSecretRef{
+						Path: "members-only-deploy-key",
+						Key:  "public-key",
+					},
 				},
 			},
 			RepositoryArgs: &github.RepositoryArgs{
