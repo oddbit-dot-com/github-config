@@ -73,10 +73,20 @@ var Organization = api.Organization{
 					Path: "firebase",
 					Key:  "service-account",
 				},
+				"MEMBERS_ONLY_DEPLOY_KEY": api.VaultSecretRef{
+					Path:     "members-only-deploy-key",
+					Key:      "private-key",
+					Encoding: api.EncodingBase64,
+				},
 			},
 		},
 		{
 			Name: "members-only",
+			DeployKeys: api.DeployKeys{
+				"publishing": &github.RepositoryDeployKeyArgs{
+					Key: pulumi.String("ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFvIMc5sGfmbpjfr6ux5nqJFCnWNJjbr/h/NmWY4jmSDLDXf9V+xA0ViOVrkJVAKb2bfVIYxPM3fJhvB6TIKRoI="),
+				},
+			},
 			RepositoryArgs: &github.RepositoryArgs{
 				AutoInit:   pulumi.Bool(false),
 				Visibility: pulumi.String("private"),

@@ -62,20 +62,24 @@ type Repository struct {
 	Secrets ActionsSecrets
 
 	// Environments maps environment names to their configuration for this repository.
-	Environments map[string]*github.RepositoryEnvironmentArgs
+	Environments Environments
 
 	// DeployKeys maps deploy key titles to their Pulumi configuration.
-	DeployKeys map[string]*github.RepositoryDeployKeyArgs
+	DeployKeys DeployKeys
 
 	// EnvironmentSecrets maps environment names to their GitHub Actions secrets,
 	// where each secret value is read from Vault.
-	EnvironmentSecrets map[string]ActionsSecrets
+	EnvironmentSecrets EnvironmentSecrets
 
 	// Parent owner (organization or user) for owner-mode
 	// Used for defaults resolution and provider inheritance
 	// If nil, repository is in standalone mode
 	owner *Owner
 }
+
+type Environments map[string]*github.RepositoryEnvironmentArgs
+type DeployKeys map[string]*github.RepositoryDeployKeyArgs
+type EnvironmentSecrets map[string]ActionsSecrets
 
 // Ensure provisions the repository and its branch protection rules
 func (r *Repository) Ensure(ctx *pulumi.Context) error {
