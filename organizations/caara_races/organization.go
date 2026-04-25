@@ -53,7 +53,7 @@ var Organization = api.Organization{
 			},
 			Secrets: api.ActionsSecrets{
 				"RCLONE_CLIENT_SECRET": &api.VaultSecretRef{
-					Path: "github-publish-workflow",
+					Path: "caara-deployer",
 					Key:  "client-secret",
 				},
 				"GOOGLE_GEOCODING_API_KEY": &api.VaultSecretRef{
