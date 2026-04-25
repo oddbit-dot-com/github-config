@@ -13,10 +13,10 @@ func TestDeployKeyProvisioned(t *testing.T) {
 		repo := &Repository{
 			Name:           "test-repo",
 			RepositoryArgs: &github.RepositoryArgs{},
-			DeployKeys: map[string]*github.RepositoryDeployKeyArgs{
-				"my-deploy-key": {
-					Key:      pulumi.String("ssh-rsa AAAA..."),
-					ReadOnly: pulumi.Bool(true),
+			DeployKeys: DeployKeys{
+				"my-deploy-key": &DeployKey{
+					Key:      &LiteralSecretRef{Value: "ssh-rsa AAAA..."},
+					ReadOnly: pulumi.BoolRef(true),
 				},
 			},
 		}
@@ -37,20 +37,45 @@ func TestDeployKeyProvisioned(t *testing.T) {
 	}
 }
 
+func TestDeployKeyDefaultReadOnly(t *testing.T) {
+	mocks := &mockMonitor{}
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		repo := &Repository{
+			Name:           "test-repo",
+			RepositoryArgs: &github.RepositoryArgs{},
+			DeployKeys: DeployKeys{
+				"my-deploy-key": &DeployKey{
+					Key: &LiteralSecretRef{Value: "ssh-rsa AAAA..."},
+				},
+			},
+		}
+		return repo.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := mocks.findByType("github:index/repositoryDeployKey:RepositoryDeployKey")
+	if len(keys) != 1 {
+		t.Fatalf("expected 1 RepositoryDeployKey, got %d", len(keys))
+	}
+	if keys[0].inputs["readOnly"].BoolValue() != true {
+		t.Errorf("expected readOnly=true by default, got %v", keys[0].inputs["readOnly"])
+	}
+}
+
 func TestMultipleDeployKeys(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		repo := &Repository{
 			Name:           "test-repo",
 			RepositoryArgs: &github.RepositoryArgs{},
-			DeployKeys: map[string]*github.RepositoryDeployKeyArgs{
-				"read-key": {
-					Key:      pulumi.String("ssh-rsa AAAA1..."),
-					ReadOnly: pulumi.Bool(true),
+			DeployKeys: DeployKeys{
+				"read-key": &DeployKey{
+					Key: &LiteralSecretRef{Value: "ssh-rsa AAAA1..."},
 				},
-				"write-key": {
-					Key:      pulumi.String("ssh-rsa AAAA2..."),
-					ReadOnly: pulumi.Bool(false),
+				"write-key": &DeployKey{
+					Key:      &LiteralSecretRef{Value: "ssh-rsa AAAA2..."},
+					ReadOnly: pulumi.BoolRef(false),
 				},
 			},
 		}

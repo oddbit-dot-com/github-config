@@ -34,7 +34,7 @@ func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, repo *github.Reposit
 	}
 
 	return provisionSecrets(ctx, r.Secrets,
-		func(secretName string, value pulumi.StringPtrInput) error {
+		func(secretName string, value pulumi.StringOutput) error {
 			resourceName := r.resourceName("github_actions_secret", secretName)
 			_, err := github.NewActionsSecret(ctx, resourceName, &github.ActionsSecretArgs{
 				Repository:     repo.Name,
@@ -61,7 +61,7 @@ func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.
 			bindVaultSecrets(secrets, r.owner.vaultProvider, r.owner.VaultProviderConfig.MountPoint)
 		}
 		if err := provisionSecrets(ctx, secrets,
-			func(secretName string, value pulumi.StringPtrInput) error {
+			func(secretName string, value pulumi.StringOutput) error {
 				resourceName := r.resourceName("github_actions_environment_secret", envName, secretName)
 				_, err := github.NewActionsEnvironmentSecret(ctx, resourceName, &github.ActionsEnvironmentSecretArgs{
 					Repository:     repo.Name,

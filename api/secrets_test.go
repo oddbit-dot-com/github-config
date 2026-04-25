@@ -569,5 +569,40 @@ func TestRepoSecretBase64Encoded(t *testing.T) {
 	}
 }
 
+func TestLiteralSecretRef(t *testing.T) {
+	mocks := &mockMonitor{}
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		org := &Organization{
+			Owner: Owner{
+				Name:                "testorg",
+				VaultProviderConfig: testVaultConfig(),
+			},
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					Secrets: ActionsSecrets{
+						"LITERAL_SECRET": &LiteralSecretRef{Value: "my-literal-value"},
+					},
+				},
+			},
+		}
+		return org.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+	secrets := mocks.findByType("github:index/actionsSecret:ActionsSecret")
+	if len(secrets) != 1 {
+		t.Fatalf("expected 1 ActionsSecret, got %d", len(secrets))
+	}
+	if secrets[0].inputs["secretName"].StringValue() != "LITERAL_SECRET" {
+		t.Errorf("expected secretName=LITERAL_SECRET, got %v", secrets[0].inputs["secretName"])
+	}
+	if got := secretPlaintextValue(secrets[0]); got != "my-literal-value" {
+		t.Errorf("expected plaintextValue=my-literal-value, got %q", got)
+	}
+}
+
 // Ensure github import is used (for type reference in other test files)
 var _ = (*github.Provider)(nil)
