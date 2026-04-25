@@ -40,7 +40,7 @@ var Organization = api.Organization{
 				HomepageUrl: pulumi.String("https://baystateradio.org"),
 				AutoInit:    pulumi.Bool(false),
 				Pages: &github.RepositoryPagesArgs{
-					BuildType: pulumi.String(api.PageBuildWorkflow),
+					BuildType: pulumi.String(api.PagesBuildWorkflow),
 					Cname:     pulumi.String("baystateradio.org"),
 				},
 			},
