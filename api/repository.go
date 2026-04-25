@@ -64,6 +64,9 @@ type Repository struct {
 	// Environments maps environment names to their configuration for this repository.
 	Environments map[string]*github.RepositoryEnvironmentArgs
 
+	// DeployKeys maps deploy key titles to their Pulumi configuration.
+	DeployKeys map[string]*github.RepositoryDeployKeyArgs
+
 	// EnvironmentSecrets maps environment names to their GitHub Actions secrets,
 	// where each secret value is read from Vault.
 	EnvironmentSecrets map[string]ActionsSecrets
@@ -155,6 +158,10 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 		return err
 	}
 
+	if err := r.ensureDeployKeys(ctx, repo, opts); err != nil {
+		return err
+	}
+
 	// Get effective issue labels
 	issueLabels := r.getIssueLabels(repo)
 
@@ -214,6 +221,23 @@ func (r *Repository) ensureCollaborators(ctx *pulumi.Context, repo *github.Repos
 		}, opts...)
 		if err != nil {
 			return fmt.Errorf("failed to add collaborator %s to %s: %w", username, r.Name, err)
+		}
+	}
+	return nil
+}
+
+func (r *Repository) ensureDeployKeys(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
+	for title, args := range r.DeployKeys {
+		if args == nil {
+			args = &github.RepositoryDeployKeyArgs{}
+		}
+		argsCopy := *args
+		argsCopy.Repository = repo.Name
+		argsCopy.Title = pulumi.String(title)
+
+		resourceName := r.resourceName("github_repository_deploy_key", title)
+		if _, err := github.NewRepositoryDeployKey(ctx, resourceName, &argsCopy, opts...); err != nil {
+			return fmt.Errorf("failed to create deploy key %s for %s: %w", title, r.Name, err)
 		}
 	}
 	return nil
