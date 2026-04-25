@@ -45,7 +45,7 @@ var Organization = api.Organization{
 				},
 			},
 			Secrets: api.ActionsSecrets{
-				"FIREBASE_SERVICE_ACCOUNT": api.VaultSecretRef{
+				"FIREBASE_SERVICE_ACCOUNT": &api.VaultSecretRef{
 					Path: "firebase",
 					Key:  "service-account",
 				},

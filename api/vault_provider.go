@@ -29,10 +29,18 @@ const (
 	EncodingBase64 Encoding = "base64"
 )
 
+// SecretRef resolves a secret value from an external provider.
+type SecretRef interface {
+	Resolve(ctx *pulumi.Context) (pulumi.StringPtrInput, error)
+}
+
 type VaultSecretRef struct {
 	Path     string
 	Key      string
 	Encoding Encoding
+
+	provider   *vault.Provider
+	mountPoint string
 }
 
 func (r VaultSecretRef) applyEncoding(v string) (string, error) {
@@ -46,23 +54,26 @@ func (r VaultSecretRef) applyEncoding(v string) (string, error) {
 	}
 }
 
-func readVaultSecret(ctx *pulumi.Context, mountPoint string, vaultProvider *vault.Provider, ref VaultSecretRef) (pulumi.StringPtrInput, error) {
+func (r *VaultSecretRef) Resolve(ctx *pulumi.Context) (pulumi.StringPtrInput, error) {
+	if r.provider == nil {
+		return nil, fmt.Errorf("vault provider not configured for secret at %s", r.Path)
+	}
 	result, err := kv.LookupSecretV2(ctx, &kv.LookupSecretV2Args{
-		Mount: mountPoint,
-		Name:  ref.Path,
-	}, pulumi.Provider(vaultProvider))
+		Mount: r.mountPoint,
+		Name:  r.Path,
+	}, pulumi.Provider(r.provider))
 	if err != nil {
 		return nil, err
 	}
 	var data map[string]any
 	if err := json.Unmarshal([]byte(result.DataJson), &data); err != nil {
-		return nil, fmt.Errorf("invalid JSON from vault at %s: %w", ref.Path, err)
+		return nil, fmt.Errorf("invalid JSON from vault at %s: %w", r.Path, err)
 	}
-	v, ok := data[ref.Key].(string)
+	v, ok := data[r.Key].(string)
 	if !ok {
-		return nil, fmt.Errorf("key %q not found or not a string in vault secret at %s", ref.Key, ref.Path)
+		return nil, fmt.Errorf("key %q not found or not a string in vault secret at %s", r.Key, r.Path)
 	}
-	v, err = ref.applyEncoding(v)
+	v, err = r.applyEncoding(v)
 	if err != nil {
 		return nil, err
 	}
@@ -71,15 +82,13 @@ func readVaultSecret(ctx *pulumi.Context, mountPoint string, vaultProvider *vaul
 
 func provisionSecrets(
 	ctx *pulumi.Context,
-	mountPoint string,
-	vaultProvider *vault.Provider,
 	secrets ActionsSecrets,
 	create func(secretName string, value pulumi.StringPtrInput) error,
 ) error {
 	for secretName, ref := range secrets {
-		value, err := readVaultSecret(ctx, mountPoint, vaultProvider, ref)
+		value, err := ref.Resolve(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to read vault secret for %s: %w", secretName, err)
+			return fmt.Errorf("failed to resolve secret for %s: %w", secretName, err)
 		}
 		if err := create(secretName, value); err != nil {
 			return err
@@ -89,12 +98,30 @@ func provisionSecrets(
 }
 
 type OrgSecretRef struct {
-	VaultSecretRef
+	SecretRef
 	Visibility string
 }
 
-type ActionsSecrets map[string]VaultSecretRef
+type ActionsSecrets map[string]SecretRef
 type OrgActionsSecrets map[string]OrgSecretRef
+
+func bindVaultSecrets(secrets ActionsSecrets, provider *vault.Provider, mountPoint string) {
+	for _, ref := range secrets {
+		if v, ok := ref.(*VaultSecretRef); ok {
+			v.provider = provider
+			v.mountPoint = mountPoint
+		}
+	}
+}
+
+func bindOrgVaultSecrets(secrets OrgActionsSecrets, provider *vault.Provider, mountPoint string) {
+	for _, ref := range secrets {
+		if v, ok := ref.SecretRef.(*VaultSecretRef); ok {
+			v.provider = provider
+			v.mountPoint = mountPoint
+		}
+	}
+}
 
 func NewVaultProviderConfig() *VaultProviderConfig {
 	return &VaultProviderConfig{MountPoint: "secret"}

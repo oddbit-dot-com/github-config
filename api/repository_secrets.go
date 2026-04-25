@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/pulumi/pulumi-github/sdk/v6/go/github"
-	vault "github.com/pulumi/pulumi-vault/sdk/v6/go/vault"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -29,12 +28,12 @@ func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, repo *github.Reposit
 	if len(r.Secrets) == 0 {
 		return nil
 	}
-	vaultProvider, err := r.getVaultProvider()
-	if err != nil {
-		return err
+
+	if r.owner != nil && r.owner.vaultProvider != nil {
+		bindVaultSecrets(r.Secrets, r.owner.vaultProvider, r.owner.VaultProviderConfig.MountPoint)
 	}
 
-	return provisionSecrets(ctx, r.owner.VaultProviderConfig.MountPoint, vaultProvider, r.Secrets,
+	return provisionSecrets(ctx, r.Secrets,
 		func(secretName string, value pulumi.StringPtrInput) error {
 			resourceName := r.resourceName("github_actions_secret", secretName)
 			_, err := github.NewActionsSecret(ctx, resourceName, &github.ActionsSecretArgs{
@@ -53,17 +52,15 @@ func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.
 	if len(r.EnvironmentSecrets) == 0 {
 		return nil
 	}
-	vaultProvider, err := r.getVaultProvider()
-	if err != nil {
-		return err
-	}
 
-	mountPoint := r.owner.VaultProviderConfig.MountPoint
 	for envName, secrets := range r.EnvironmentSecrets {
 		if _, declared := r.Environments[envName]; !declared {
 			return fmt.Errorf("environment %q referenced in EnvironmentSecrets of %s is not declared in Environments", envName, r.Name)
 		}
-		if err := provisionSecrets(ctx, mountPoint, vaultProvider, secrets,
+		if r.owner != nil && r.owner.vaultProvider != nil {
+			bindVaultSecrets(secrets, r.owner.vaultProvider, r.owner.VaultProviderConfig.MountPoint)
+		}
+		if err := provisionSecrets(ctx, secrets,
 			func(secretName string, value pulumi.StringPtrInput) error {
 				resourceName := r.resourceName("github_actions_environment_secret", envName, secretName)
 				_, err := github.NewActionsEnvironmentSecret(ctx, resourceName, &github.ActionsEnvironmentSecretArgs{
@@ -81,11 +78,4 @@ func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.
 		}
 	}
 	return nil
-}
-
-func (r *Repository) getVaultProvider() (*vault.Provider, error) {
-	if r.owner == nil || r.owner.vaultProvider == nil {
-		return nil, fmt.Errorf("repository %s has secrets but no vault provider is configured", r.Name)
-	}
-	return r.owner.vaultProvider, nil
 }
