@@ -52,28 +52,28 @@ var Organization = api.Organization{
 				},
 			},
 			Secrets: api.ActionsSecrets{
-				"RCLONE_CLIENT_SECRET": api.VaultSecretRef{
+				"RCLONE_CLIENT_SECRET": &api.VaultSecretRef{
 					Path: "github-publish-workflow",
 					Key:  "client-secret",
 				},
-				"GOOGLE_GEOCODING_API_KEY": api.VaultSecretRef{
+				"GOOGLE_GEOCODING_API_KEY": &api.VaultSecretRef{
 					Path: "google/geocoding-api",
 					Key:  "api-key",
 				},
-				"MAPTILER_API_KEY": api.VaultSecretRef{
+				"MAPTILER_API_KEY": &api.VaultSecretRef{
 					Path: "maptiler",
 					Key:  "api-key",
 				},
-				"GOOGLE_SHEETS_READER_SA": api.VaultSecretRef{
+				"GOOGLE_SHEETS_READER_SA": &api.VaultSecretRef{
 					Path:     "google/sheets",
 					Key:      "service-account",
 					Encoding: api.EncodingBase64,
 				},
-				"FIREBASE_SERVICE_ACCOUNT": api.VaultSecretRef{
+				"FIREBASE_SERVICE_ACCOUNT": &api.VaultSecretRef{
 					Path: "firebase",
 					Key:  "service-account",
 				},
-				"MEMBERS_ONLY_DEPLOY_KEY": api.VaultSecretRef{
+				"MEMBERS_ONLY_DEPLOY_KEY": &api.VaultSecretRef{
 					Path:     "members-only-deploy-key",
 					Key:      "private-key",
 					Encoding: api.EncodingBase64,

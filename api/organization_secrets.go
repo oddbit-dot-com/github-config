@@ -12,8 +12,9 @@ func (o *Organization) ensureOrgSecrets(ctx *pulumi.Context, githubProvider *git
 	if len(o.Secrets) == 0 {
 		return nil
 	}
-	if o.VaultProviderConfig == nil {
-		return fmt.Errorf("organization %s has Secrets but no vault provider configured", o.Name)
+
+	if o.vaultProvider != nil {
+		bindOrgVaultSecrets(o.Secrets, o.vaultProvider, o.VaultProviderConfig.MountPoint)
 	}
 
 	var githubOpts []pulumi.ResourceOption
@@ -22,9 +23,9 @@ func (o *Organization) ensureOrgSecrets(ctx *pulumi.Context, githubProvider *git
 	}
 
 	for secretName, ref := range o.Secrets {
-		value, err := readVaultSecret(ctx, o.VaultProviderConfig.MountPoint, o.vaultProvider, ref.VaultSecretRef)
+		value, err := ref.Resolve(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to read vault secret for %s/%s: %w", o.Name, secretName, err)
+			return fmt.Errorf("failed to resolve secret for %s/%s: %w", o.Name, secretName, err)
 		}
 
 		visibility := ref.Visibility

@@ -53,7 +53,7 @@ func TestOrgSecretNoVaultProvider(t *testing.T) {
 		org := &Organization{
 			Owner: Owner{Name: "testorg"},
 			Secrets: OrgActionsSecrets{
-				"MY_SECRET": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey"}},
+				"MY_SECRET": {SecretRef: &VaultSecretRef{Path: "mypath", Key: "mykey"}},
 			},
 		}
 		return org.Ensure(ctx)
@@ -78,7 +78,7 @@ func TestOrgSecretProvisioned(t *testing.T) {
 				VaultProviderConfig: testVaultConfig(),
 			},
 			Secrets: OrgActionsSecrets{
-				"MY_SECRET": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey"}},
+				"MY_SECRET": {SecretRef: &VaultSecretRef{Path: "mypath", Key: "mykey"}},
 			},
 		}
 		return org.Ensure(ctx)
@@ -107,7 +107,7 @@ func TestOrgSecretVisibilityDefault(t *testing.T) {
 				VaultProviderConfig: testVaultConfig(),
 			},
 			Secrets: OrgActionsSecrets{
-				"S": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey"}},
+				"S": {SecretRef: &VaultSecretRef{Path: "mypath", Key: "mykey"}},
 			},
 		}
 		return org.Ensure(ctx)
@@ -136,7 +136,7 @@ func TestOrgSecretCustomVisibility(t *testing.T) {
 				VaultProviderConfig: testVaultConfig(),
 			},
 			Secrets: OrgActionsSecrets{
-				"S": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey"}, Visibility: "private"},
+				"S": {SecretRef: &VaultSecretRef{Path: "mypath", Key: "mykey"}, Visibility: "private"},
 			},
 		}
 		return org.Ensure(ctx)
@@ -157,7 +157,7 @@ func TestRepoSecretNoVaultProvider(t *testing.T) {
 			Name:           "test-repo",
 			RepositoryArgs: &github.RepositoryArgs{},
 			Secrets: ActionsSecrets{
-				"MY_SECRET": {Path: "mypath", Key: "mykey"},
+				"MY_SECRET": &VaultSecretRef{Path: "mypath", Key: "mykey"},
 			},
 		}
 		return repo.Ensure(ctx)
@@ -186,7 +186,7 @@ func TestRepoSecretProvisioned(t *testing.T) {
 					Name:           "test-repo",
 					RepositoryArgs: &github.RepositoryArgs{},
 					Secrets: ActionsSecrets{
-						"DB_PASSWORD": {Path: "mypath", Key: "mykey"},
+						"DB_PASSWORD": &VaultSecretRef{Path: "mypath", Key: "mykey"},
 					},
 				},
 			},
@@ -243,7 +243,7 @@ func TestEnvSecretMissingEnvironment(t *testing.T) {
 					RepositoryArgs: &github.RepositoryArgs{},
 					EnvironmentSecrets: map[string]ActionsSecrets{
 						"production": {
-							"API_KEY": {Path: "p", Key: "k"},
+							"API_KEY": &VaultSecretRef{Path: "p", Key: "k"},
 						},
 					},
 				},
@@ -279,7 +279,7 @@ func TestEnvSecretProvisioned(t *testing.T) {
 					},
 					EnvironmentSecrets: map[string]ActionsSecrets{
 						"production": {
-							"PROD_API_KEY": {Path: "prod/apikey", Key: "key"},
+							"PROD_API_KEY": &VaultSecretRef{Path: "prod/apikey", Key: "key"},
 						},
 					},
 				},
@@ -515,7 +515,7 @@ func TestOrgSecretBase64Encoded(t *testing.T) {
 				VaultProviderConfig: testVaultConfig(),
 			},
 			Secrets: OrgActionsSecrets{
-				"MY_SECRET": {VaultSecretRef: VaultSecretRef{Path: "mypath", Key: "mykey", Encoding: EncodingBase64}},
+				"MY_SECRET": {SecretRef: &VaultSecretRef{Path: "mypath", Key: "mykey", Encoding: EncodingBase64}},
 			},
 		}
 		return org.Ensure(ctx)
@@ -549,7 +549,7 @@ func TestRepoSecretBase64Encoded(t *testing.T) {
 					Name:           "test-repo",
 					RepositoryArgs: &github.RepositoryArgs{},
 					Secrets: ActionsSecrets{
-						"DB_PASSWORD": {Path: "mypath", Key: "mykey", Encoding: EncodingBase64},
+						"DB_PASSWORD": &VaultSecretRef{Path: "mypath", Key: "mykey", Encoding: EncodingBase64},
 					},
 				},
 			},

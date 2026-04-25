@@ -110,7 +110,7 @@ func TestUserRepoSecretProvisioned(t *testing.T) {
 					Name:           "my-repo",
 					RepositoryArgs: &github.RepositoryArgs{},
 					Secrets: ActionsSecrets{
-						"DB_PASSWORD": {Path: "mypath", Key: "mykey"},
+						"DB_PASSWORD": &VaultSecretRef{Path: "mypath", Key: "mykey"},
 					},
 				},
 			},
