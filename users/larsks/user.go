@@ -11,10 +11,9 @@ var User = api.User{
 		Name:                 "larsks",
 		GithubProviderConfig: api.NewGithubProviderConfig(),
 	},
-	SshKeys: []*github.UserSshKeyArgs{
-		&github.UserSshKeyArgs{
-			Title: pulumi.String("lars@oddbit.com"),
-			Key:   pulumi.String("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFVJHRH2xg2joG1xJIrNTalRkzT6BM8rQT+OXoFiKn16"),
+	SshKeys: map[string]*github.UserSshKeyArgs{
+		"lars@oddbit.com": {
+			Key: pulumi.String("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFVJHRH2xg2joG1xJIrNTalRkzT6BM8rQT+OXoFiKn16"),
 		},
 	},
 

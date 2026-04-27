@@ -12,11 +12,13 @@ import (
 type User struct {
 	Owner
 
-	// SSH keys to register on this account
-	SshKeys []*github.UserSshKeyArgs
+	// SSH keys to register on this account.
+	// Map keys are used for resource naming and as the key Title if not set.
+	SshKeys map[string]*github.UserSshKeyArgs
 
-	// GPG keys to register on this account
-	GpgKeys []*github.UserGpgKeyArgs
+	// GPG keys to register on this account.
+	// Map keys are user-chosen identifiers used for resource naming.
+	GpgKeys map[string]*github.UserGpgKeyArgs
 
 	// Repository configurations
 	Repositories []*Repository
@@ -54,10 +56,13 @@ func (u *User) keyProvisionOpts() []pulumi.ResourceOption {
 
 func (u *User) ensureSshKeys(ctx *pulumi.Context) error {
 	opts := u.keyProvisionOpts()
-	for i, key := range u.SshKeys {
-		resourceName := helpers.ResourceName("github_user_ssh_key", u.Name, fmt.Sprintf("%d", i))
+	for name, key := range u.SshKeys {
+		if key.Title == nil {
+			key.Title = pulumi.String(name)
+		}
+		resourceName := helpers.ResourceName("github_user_ssh_key", u.Name, name)
 		if _, err := github.NewUserSshKey(ctx, resourceName, key, opts...); err != nil {
-			return fmt.Errorf("failed to create SSH key %d for %s: %w", i, u.Name, err)
+			return fmt.Errorf("failed to create SSH key %s for %s: %w", name, u.Name, err)
 		}
 	}
 	return nil
@@ -65,10 +70,10 @@ func (u *User) ensureSshKeys(ctx *pulumi.Context) error {
 
 func (u *User) ensureGpgKeys(ctx *pulumi.Context) error {
 	opts := u.keyProvisionOpts()
-	for i, key := range u.GpgKeys {
-		resourceName := helpers.ResourceName("github_user_gpg_key", u.Name, fmt.Sprintf("%d", i))
+	for name, key := range u.GpgKeys {
+		resourceName := helpers.ResourceName("github_user_gpg_key", u.Name, name)
 		if _, err := github.NewUserGpgKey(ctx, resourceName, key, opts...); err != nil {
-			return fmt.Errorf("failed to create GPG key %d for %s: %w", i, u.Name, err)
+			return fmt.Errorf("failed to create GPG key %s for %s: %w", name, u.Name, err)
 		}
 	}
 	return nil
