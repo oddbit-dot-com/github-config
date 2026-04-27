@@ -78,15 +78,6 @@ func bindVaultSecrets(secrets ActionsSecrets, provider *vault.Provider, mountPoi
 	}
 }
 
-func bindOrgVaultSecrets(secrets OrgActionsSecrets, provider *vault.Provider, mountPoint string) {
-	for _, ref := range secrets {
-		if v, ok := ref.SecretRef.(*VaultSecretRef); ok {
-			v.provider = provider
-			v.mountPoint = mountPoint
-		}
-	}
-}
-
 func NewVaultProviderConfig() *VaultProviderConfig {
 	return &VaultProviderConfig{MountPoint: "secret"}
 }
