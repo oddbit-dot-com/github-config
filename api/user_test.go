@@ -12,8 +12,8 @@ func TestUserSshKeyProvisioned(t *testing.T) {
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		user := &User{
 			Owner: Owner{Name: "testuser"},
-			SshKeys: []*github.UserSshKeyArgs{
-				{Title: pulumi.String("my-key"), Key: pulumi.String("ssh-rsa AAAA...")},
+			SshKeys: map[string]*github.UserSshKeyArgs{
+				"my-key": {Key: pulumi.String("ssh-rsa AAAA...")},
 			},
 		}
 		return user.Ensure(ctx)
@@ -30,14 +30,37 @@ func TestUserSshKeyProvisioned(t *testing.T) {
 	}
 }
 
+func TestUserSshKeyExplicitTitle(t *testing.T) {
+	mocks := &mockMonitor{}
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		user := &User{
+			Owner: Owner{Name: "testuser"},
+			SshKeys: map[string]*github.UserSshKeyArgs{
+				"my-key": {Title: pulumi.String("Custom Title"), Key: pulumi.String("ssh-rsa AAAA...")},
+			},
+		}
+		return user.Ensure(ctx)
+	}, pulumi.WithMocks("proj", "stack", mocks))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := mocks.findByType("github:index/userSshKey:UserSshKey")
+	if len(keys) != 1 {
+		t.Fatalf("expected 1 UserSshKey, got %d", len(keys))
+	}
+	if keys[0].inputs["title"].StringValue() != "Custom Title" {
+		t.Errorf("expected title=Custom Title, got %v", keys[0].inputs["title"])
+	}
+}
+
 func TestUserMultipleSshKeysProvisioned(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		user := &User{
 			Owner: Owner{Name: "testuser"},
-			SshKeys: []*github.UserSshKeyArgs{
-				{Title: pulumi.String("key-one"), Key: pulumi.String("ssh-rsa AAAA...")},
-				{Title: pulumi.String("key-two"), Key: pulumi.String("ssh-rsa BBBB...")},
+			SshKeys: map[string]*github.UserSshKeyArgs{
+				"key-one": {Key: pulumi.String("ssh-rsa AAAA...")},
+				"key-two": {Key: pulumi.String("ssh-rsa BBBB...")},
 			},
 		}
 		return user.Ensure(ctx)
@@ -56,8 +79,8 @@ func TestUserGpgKeyProvisioned(t *testing.T) {
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		user := &User{
 			Owner: Owner{Name: "testuser"},
-			GpgKeys: []*github.UserGpgKeyArgs{
-				{ArmoredPublicKey: pulumi.String("-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----")},
+			GpgKeys: map[string]*github.UserGpgKeyArgs{
+				"primary": {ArmoredPublicKey: pulumi.String("-----BEGIN PGP PUBLIC KEY BLOCK-----\n...\n-----END PGP PUBLIC KEY BLOCK-----")},
 			},
 		}
 		return user.Ensure(ctx)

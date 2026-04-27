@@ -10,17 +10,22 @@ import (
 func TestDeployKeyProvisioned(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-		repo := &Repository{
-			Name:           "test-repo",
-			RepositoryArgs: &github.RepositoryArgs{},
-			DeployKeys: DeployKeys{
-				"my-deploy-key": &DeployKey{
-					Key:      &LiteralSecretRef{Value: "ssh-rsa AAAA..."},
-					ReadOnly: pulumi.BoolRef(true),
+		org := &Organization{
+			Owner: Owner{Name: "testorg"},
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					DeployKeys: DeployKeys{
+						"my-deploy-key": &DeployKey{
+							Key:      &LiteralSecretRef{Value: "ssh-rsa AAAA..."},
+							ReadOnly: pulumi.BoolRef(true),
+						},
+					},
 				},
 			},
 		}
-		return repo.Ensure(ctx)
+		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
 	if err != nil {
 		t.Fatal(err)
@@ -40,16 +45,21 @@ func TestDeployKeyProvisioned(t *testing.T) {
 func TestDeployKeyDefaultReadOnly(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-		repo := &Repository{
-			Name:           "test-repo",
-			RepositoryArgs: &github.RepositoryArgs{},
-			DeployKeys: DeployKeys{
-				"my-deploy-key": &DeployKey{
-					Key: &LiteralSecretRef{Value: "ssh-rsa AAAA..."},
+		org := &Organization{
+			Owner: Owner{Name: "testorg"},
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					DeployKeys: DeployKeys{
+						"my-deploy-key": &DeployKey{
+							Key: &LiteralSecretRef{Value: "ssh-rsa AAAA..."},
+						},
+					},
 				},
 			},
 		}
-		return repo.Ensure(ctx)
+		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
 	if err != nil {
 		t.Fatal(err)
@@ -66,20 +76,25 @@ func TestDeployKeyDefaultReadOnly(t *testing.T) {
 func TestMultipleDeployKeys(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-		repo := &Repository{
-			Name:           "test-repo",
-			RepositoryArgs: &github.RepositoryArgs{},
-			DeployKeys: DeployKeys{
-				"read-key": &DeployKey{
-					Key: &LiteralSecretRef{Value: "ssh-rsa AAAA1..."},
-				},
-				"write-key": &DeployKey{
-					Key:      &LiteralSecretRef{Value: "ssh-rsa AAAA2..."},
-					ReadOnly: pulumi.BoolRef(false),
+		org := &Organization{
+			Owner: Owner{Name: "testorg"},
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					DeployKeys: DeployKeys{
+						"read-key": &DeployKey{
+							Key: &LiteralSecretRef{Value: "ssh-rsa AAAA1..."},
+						},
+						"write-key": &DeployKey{
+							Key:      &LiteralSecretRef{Value: "ssh-rsa AAAA2..."},
+							ReadOnly: pulumi.BoolRef(false),
+						},
+					},
 				},
 			},
 		}
-		return repo.Ensure(ctx)
+		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
 	if err != nil {
 		t.Fatal(err)
@@ -93,11 +108,16 @@ func TestMultipleDeployKeys(t *testing.T) {
 func TestNoDeployKeys(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-		repo := &Repository{
-			Name:           "test-repo",
-			RepositoryArgs: &github.RepositoryArgs{},
+		org := &Organization{
+			Owner: Owner{Name: "testorg"},
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+				},
+			},
 		}
-		return repo.Ensure(ctx)
+		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
 	if err != nil {
 		t.Fatal(err)
