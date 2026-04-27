@@ -96,7 +96,7 @@ var Organization = api.Organization{
 			},
 			BranchProtectionRules: api.BranchProtectionRules{},
 			Teams: map[string]string{
-				"webworkers": "push",
+				"webworkers": api.PermissionPush,
 			},
 		},
 	},
