@@ -13,8 +13,13 @@ func (o *Organization) ensureOrgSecrets(ctx *pulumi.Context, githubProvider *git
 		return nil
 	}
 
+	secrets := make(ActionsSecrets, len(o.Secrets))
+	for name, ref := range o.Secrets {
+		secrets[name] = ref.SecretRef
+	}
+
 	if o.vaultProvider != nil {
-		bindOrgVaultSecrets(o.Secrets, o.vaultProvider, o.VaultProviderConfig.MountPoint)
+		bindVaultSecrets(secrets, o.vaultProvider, o.VaultProviderConfig.MountPoint)
 	}
 
 	var githubOpts []pulumi.ResourceOption
@@ -22,19 +27,14 @@ func (o *Organization) ensureOrgSecrets(ctx *pulumi.Context, githubProvider *git
 		githubOpts = append(githubOpts, pulumi.Provider(githubProvider))
 	}
 
-	for secretName, ref := range o.Secrets {
-		value, err := ref.Resolve(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to resolve secret for %s/%s: %w", o.Name, secretName, err)
-		}
-
-		visibility := ref.Visibility
+	return provisionSecrets(ctx, secrets, func(secretName string, value pulumi.StringOutput) error {
+		visibility := o.Secrets[secretName].Visibility
 		if visibility == "" {
 			visibility = VisibilityAll
 		}
 
 		resourceName := helpers.ResourceName("github_actions_organization_secret", o.Name, secretName)
-		_, err = github.NewActionsOrganizationSecret(ctx, resourceName, &github.ActionsOrganizationSecretArgs{
+		_, err := github.NewActionsOrganizationSecret(ctx, resourceName, &github.ActionsOrganizationSecretArgs{
 			SecretName:     pulumi.String(secretName),
 			Visibility:     pulumi.String(visibility),
 			PlaintextValue: value,
@@ -42,6 +42,6 @@ func (o *Organization) ensureOrgSecrets(ctx *pulumi.Context, githubProvider *git
 		if err != nil {
 			return fmt.Errorf("failed to create org secret %s/%s: %w", o.Name, secretName, err)
 		}
-	}
-	return nil
+		return nil
+	})
 }
