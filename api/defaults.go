@@ -39,21 +39,11 @@ func builtInDefaultBranchProtection() *github.BranchProtectionArgs {
 	}
 }
 
-// copyBranchProtectionArgs creates a fresh BranchProtectionArgs instance with the given
-// repositoryId and pattern, copying settings from the template to avoid shared state mutation
 func copyBranchProtectionArgs(template *github.BranchProtectionArgs, repoID pulumi.IDOutput, pattern string) *github.BranchProtectionArgs {
-	return &github.BranchProtectionArgs{
-		// Set these first - they're repository-specific
-		RepositoryId: repoID,
-		Pattern:      pulumi.String(pattern),
-
-		// Copy all fields from template
-		RequiredLinearHistory:      template.RequiredLinearHistory,
-		AllowsForcePushes:          template.AllowsForcePushes,
-		EnforceAdmins:              template.EnforceAdmins,
-		ForcePushBypassers:         template.ForcePushBypassers,
-		RequiredPullRequestReviews: template.RequiredPullRequestReviews,
-	}
+	result := *template
+	result.RepositoryId = repoID
+	result.Pattern = pulumi.String(pattern)
+	return &result
 }
 
 // DefaultIssueLabels returns GitHub's default issue labels
