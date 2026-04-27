@@ -47,7 +47,7 @@ func (o *Owner) ensureVaultProvider(ctx *pulumi.Context) error {
 func (o *Owner) ensureRepositories(ctx *pulumi.Context, repos []*Repository) error {
 	for _, repo := range repos {
 		repo.owner = o
-		if err := repo.Ensure(ctx); err != nil {
+		if err := repo.ensure(ctx); err != nil {
 			return fmt.Errorf("failed to ensure repository %s/%s: %w", o.Name, repo.Name, err)
 		}
 	}

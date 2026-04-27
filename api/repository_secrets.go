@@ -29,7 +29,7 @@ func (r *Repository) ensureRepoSecrets(ctx *pulumi.Context, repo *github.Reposit
 		return nil
 	}
 
-	if r.owner != nil && r.owner.vaultProvider != nil {
+	if r.owner.vaultProvider != nil {
 		bindVaultSecrets(r.Secrets, r.owner.vaultProvider, r.owner.VaultProviderConfig.MountPoint)
 	}
 
@@ -57,7 +57,7 @@ func (r *Repository) ensureEnvironmentSecrets(ctx *pulumi.Context, repo *github.
 		if _, declared := r.Environments[envName]; !declared {
 			return fmt.Errorf("environment %q referenced in EnvironmentSecrets of %s is not declared in Environments", envName, r.Name)
 		}
-		if r.owner != nil && r.owner.vaultProvider != nil {
+		if r.owner.vaultProvider != nil {
 			bindVaultSecrets(secrets, r.owner.vaultProvider, r.owner.VaultProviderConfig.MountPoint)
 		}
 		if err := provisionSecrets(ctx, secrets,

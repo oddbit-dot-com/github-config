@@ -153,14 +153,19 @@ func TestOrgSecretCustomVisibility(t *testing.T) {
 func TestRepoSecretNoVaultProvider(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-		repo := &Repository{
-			Name:           "test-repo",
-			RepositoryArgs: &github.RepositoryArgs{},
-			Secrets: ActionsSecrets{
-				"MY_SECRET": &VaultSecretRef{Path: "mypath", Key: "mykey"},
+		org := &Organization{
+			Owner: Owner{Name: "testorg"},
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					Secrets: ActionsSecrets{
+						"MY_SECRET": &VaultSecretRef{Path: "mypath", Key: "mykey"},
+					},
+				},
 			},
 		}
-		return repo.Ensure(ctx)
+		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
 	if err == nil {
 		t.Fatal("expected error when repo has Secrets but no org vault provider")
@@ -208,14 +213,19 @@ func TestRepoSecretProvisioned(t *testing.T) {
 func TestRepoEnvironmentCreated(t *testing.T) {
 	mocks := &mockMonitor{}
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-		repo := &Repository{
-			Name:           "test-repo",
-			RepositoryArgs: &github.RepositoryArgs{},
-			Environments: map[string]*github.RepositoryEnvironmentArgs{
-				"production": {},
+		org := &Organization{
+			Owner: Owner{Name: "testorg"},
+			Repositories: []*Repository{
+				{
+					Name:           "test-repo",
+					RepositoryArgs: &github.RepositoryArgs{},
+					Environments: map[string]*github.RepositoryEnvironmentArgs{
+						"production": {},
+					},
+				},
 			},
 		}
-		return repo.Ensure(ctx)
+		return org.Ensure(ctx)
 	}, pulumi.WithMocks("proj", "stack", mocks))
 	if err != nil {
 		t.Fatal(err)

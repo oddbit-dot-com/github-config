@@ -19,7 +19,7 @@ type BranchProtectionRules map[string]*github.BranchProtectionArgs
 // Labels can be merged using MergeLabels to combine org-level and repo-level labels.
 type IssueLabels map[string]*github.IssueLabelsLabelArgs
 
-// Repository represents a GitHub repository that implements the Ensurable interface
+// Repository represents a GitHub repository managed by an Owner (Organization or User).
 type Repository struct {
 	// Name of the repository
 	Name string
@@ -34,15 +34,6 @@ type Repository struct {
 	// Issue labels for this repository
 	// If nil, inherits from organization or built-in defaults
 	Labels IssueLabels
-
-	// Optional provider configuration for standalone mode
-	// Allows specifying owner and token without manually creating a provider
-	// If nil or Owner is nil, falls back to explicit Provider or Pulumi default
-	GithubProviderConfig *GithubProviderConfig
-
-	// Optional provider for standalone mode
-	// If nil, uses Pulumi's default provider
-	Provider *github.Provider
 
 	// Teams maps GitHub team slugs to permission levels for this repository.
 	// Valid permissions: "pull", "triage", "push", "maintain", "admin"
@@ -71,9 +62,7 @@ type Repository struct {
 	// where each secret value is read from Vault.
 	EnvironmentSecrets EnvironmentSecrets
 
-	// Parent owner (organization or user) for owner-mode
-	// Used for defaults resolution and provider inheritance
-	// If nil, repository is in standalone mode
+	// Parent owner (organization or user), set by Owner.ensureRepositories()
 	owner *Owner
 }
 
@@ -86,36 +75,16 @@ type DeployKey struct {
 type DeployKeys map[string]*DeployKey
 type EnvironmentSecrets map[string]ActionsSecrets
 
-// Ensure provisions the repository and its branch protection rules
-func (r *Repository) Ensure(ctx *pulumi.Context) error {
+func (r *Repository) ensure(ctx *pulumi.Context) error {
 	if r.RepositoryArgs == nil {
 		r.RepositoryArgs = &github.RepositoryArgs{}
 	}
-	// Apply repository defaults
 	applyRepositoryDefaults(r.RepositoryArgs)
-
-	// Set repository name
 	r.RepositoryArgs.Name = pulumi.String(r.Name)
 
-	// Create provider from ProviderConfig if in standalone mode and config provided
-	if r.owner == nil && r.Provider == nil && r.GithubProviderConfig != nil {
-		provider, err := r.createStandaloneProvider(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to create provider from config for %s: %w", r.Name, err)
-		}
-		// Only set if provider was created (not nil)
-		if provider != nil {
-			r.Provider = provider
-		}
-	}
-
-	// Get provider to use
-	provider := r.getProvider()
-
-	// Create provider option
 	var opts []pulumi.ResourceOption
-	if provider != nil {
-		opts = append(opts, pulumi.Provider(provider))
+	if r.owner.githubProvider != nil {
+		opts = append(opts, pulumi.Provider(r.owner.githubProvider))
 	}
 
 	// Create repository
@@ -125,14 +94,8 @@ func (r *Repository) Ensure(ctx *pulumi.Context) error {
 		return fmt.Errorf("failed to create repository %s: %w", r.Name, err)
 	}
 
-	// Set default branch if specified
 	if r.DefaultBranch != "" {
-		var bdResourceName string
-		if r.owner != nil {
-			bdResourceName = helpers.ResourceName("github_branch_default", r.owner.Name, r.Name)
-		} else {
-			bdResourceName = helpers.ResourceName("github_branch_default", r.Name)
-		}
+		bdResourceName := helpers.ResourceName("github_branch_default", r.owner.Name, r.Name)
 		_, err = github.NewBranchDefault(ctx, bdResourceName, &github.BranchDefaultArgs{
 			Repository: repo.Name,
 			Branch:     pulumi.String(r.DefaultBranch),
@@ -236,7 +199,7 @@ func (r *Repository) ensureCollaborators(ctx *pulumi.Context, repo *github.Repos
 }
 
 func (r *Repository) ensureDeployKeys(ctx *pulumi.Context, repo *github.Repository, opts []pulumi.ResourceOption) error {
-	if r.owner != nil && r.owner.vaultProvider != nil {
+	if r.owner.vaultProvider != nil {
 		for _, dk := range r.DeployKeys {
 			if v, ok := dk.Key.(*VaultSecretRef); ok {
 				v.provider = r.owner.vaultProvider
@@ -269,21 +232,6 @@ func (r *Repository) ensureDeployKeys(ctx *pulumi.Context, repo *github.Reposito
 	return nil
 }
 
-// getProvider returns the appropriate provider for this repository
-func (r *Repository) getProvider() *github.Provider {
-	if r.owner != nil {
-		return r.owner.githubProvider
-	}
-	// Standalone mode: use explicit provider or nil for default
-	return r.Provider
-}
-
-// createStandaloneProvider creates a provider from ProviderConfig when in standalone mode
-// Returns nil if ProviderConfig is nil or Owner is not set
-func (r *Repository) createStandaloneProvider(ctx *pulumi.Context) (*github.Provider, error) {
-	return CreateGitHubProvider(ctx, r.GithubProviderConfig, "", r.Name, "orgs")
-}
-
 // getBranchProtectionRules returns the effective branch protection rules
 // using the three-tier precedence system: repo-specific > org defaults > built-in defaults
 func (r *Repository) getBranchProtectionRules(repo *github.Repository) BranchProtectionRules {
@@ -296,9 +244,8 @@ func (r *Repository) getBranchProtectionRules(repo *github.Repository) BranchPro
 		return result
 	}
 
-	// Check for owner defaults
 	var template *github.BranchProtectionArgs
-	if r.owner != nil && r.owner.DefaultBranchProtection != nil {
+	if r.owner.DefaultBranchProtection != nil {
 		template = r.owner.DefaultBranchProtection
 	} else {
 		template = builtInDefaultBranchProtection()
@@ -316,21 +263,18 @@ func (r *Repository) getBranchProtectionRules(repo *github.Repository) BranchPro
 func (r *Repository) getIssueLabels(repo *github.Repository) IssueLabels {
 	result := make(IssueLabels)
 
-	// Step 1: Add owner labels (if any)
-	if r.owner != nil && r.owner.Labels != nil && len(r.owner.Labels) > 0 {
+	if len(r.owner.Labels) > 0 {
 		for name, args := range r.owner.Labels {
 			result[name] = copyIssueLabelArgs(args, name)
 		}
 	}
 
-	// Step 2: Add/override with repository-specific labels (if any)
-	if r.Labels != nil && len(r.Labels) > 0 {
+	if len(r.Labels) > 0 {
 		for name, args := range r.Labels {
 			result[name] = copyIssueLabelArgs(args, name)
 		}
 	}
 
-	// Step 3: If no labels specified anywhere, use built-in defaults
 	if len(result) == 0 {
 		for name, args := range DefaultIssueLabels() {
 			result[name] = copyIssueLabelArgs(args, name)
@@ -340,14 +284,8 @@ func (r *Repository) getIssueLabels(repo *github.Repository) IssueLabels {
 	return result
 }
 
-// repoScope returns a slug that uniquely scopes resource names to this repository.
-// In org mode it returns "org.repo"; in standalone mode it returns "repo".
 func (r *Repository) resourceName(prefix string, extra ...string) string {
-	parts := []string{prefix}
-	if r.owner != nil {
-		parts = append(parts, r.owner.Name)
-	}
-	parts = append(parts, r.Name)
+	parts := []string{prefix, r.owner.Name, r.Name}
 	parts = append(parts, extra...)
 	return helpers.ResourceName(parts...)
 }
