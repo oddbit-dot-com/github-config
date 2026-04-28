@@ -9,8 +9,7 @@ import (
 // Organization defines the manymanymeatballs GitHub organization configuration
 var Organization = api.Organization{
 	Owner: api.Owner{
-		Name:                 "manymanymeatballs",
-		GithubProviderConfig: api.NewGithubProviderConfig(),
+		Name: "manymanymeatballs",
 	},
 
 	Settings: &github.OrganizationSettingsArgs{

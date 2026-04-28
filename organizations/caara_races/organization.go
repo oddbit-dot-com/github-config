@@ -11,8 +11,7 @@ import (
 
 var Organization = api.Organization{
 	Owner: api.Owner{
-		Name:                 "caara-races",
-		GithubProviderConfig: api.NewGithubProviderConfig(),
+		Name:                "caara-races",
 		VaultProviderConfig: api.NewVaultProviderConfig().
 			WithMountPoint("caara-races").
 			WithToken(os.Getenv("VAULT_TOKEN_CAARA_RACES")).
