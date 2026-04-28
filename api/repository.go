@@ -94,15 +94,17 @@ func (r *Repository) ensure(ctx *pulumi.Context) error {
 		return fmt.Errorf("failed to create repository %s: %w", r.Name, err)
 	}
 
-	if r.DefaultBranch != "" {
-		bdResourceName := helpers.ResourceName("github_branch_default", r.owner.Name, r.Name)
-		_, err = github.NewBranchDefault(ctx, bdResourceName, &github.BranchDefaultArgs{
-			Repository: repo.Name,
-			Branch:     pulumi.String(r.DefaultBranch),
-		}, opts...)
-		if err != nil {
-			return fmt.Errorf("failed to set default branch for %s: %w", r.Name, err)
-		}
+	if r.DefaultBranch == "" {
+		r.DefaultBranch = defaultBranchName
+	}
+
+	bdResourceName := helpers.ResourceName("github_branch_default", r.owner.Name, r.Name)
+	_, err = github.NewBranchDefault(ctx, bdResourceName, &github.BranchDefaultArgs{
+		Repository: repo.Name,
+		Branch:     pulumi.String(r.DefaultBranch),
+	}, opts...)
+	if err != nil {
+		return fmt.Errorf("failed to set default branch for %s: %w", r.Name, err)
 	}
 
 	// Get effective branch protection rules
