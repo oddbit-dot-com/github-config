@@ -8,8 +8,7 @@ import (
 
 var User = api.User{
 	Owner: api.Owner{
-		Name:                 "larsks",
-		GithubProviderConfig: api.NewGithubProviderConfig(),
+		Name: "larsks",
 	},
 	SshKeys: map[string]*github.UserSshKeyArgs{
 		"lars@oddbit.com": {

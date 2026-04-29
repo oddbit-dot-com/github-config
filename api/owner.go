@@ -27,6 +27,9 @@ type Owner struct {
 }
 
 func (o *Owner) ensureGithubProvider(ctx *pulumi.Context, kind ownerKind) error {
+	if o.GithubProviderConfig == nil {
+		o.GithubProviderConfig = NewGithubProviderConfig()
+	}
 	provider, err := CreateGitHubProvider(ctx, o.GithubProviderConfig, o.Name, "", kind.githubAPIKind())
 	if err != nil {
 		return fmt.Errorf("failed to create github provider for %s: %w", o.Name, err)

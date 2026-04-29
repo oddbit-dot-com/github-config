@@ -11,8 +11,7 @@ import (
 // Organization defines the baystateradio GitHub organization configuration
 var Organization = api.Organization{
 	Owner: api.Owner{
-		Name:                 "baystateradio",
-		GithubProviderConfig: api.NewGithubProviderConfig(),
+		Name:                "baystateradio",
 		VaultProviderConfig: api.NewVaultProviderConfig().
 			WithMountPoint("baystateradio").
 			WithToken(os.Getenv("VAULT_TOKEN_BAYSTATERADIO")).

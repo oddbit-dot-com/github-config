@@ -8,8 +8,7 @@ import (
 
 var Organization = api.Organization{
 	Owner: api.Owner{
-		Name:                 "oddbit-dot-com",
-		GithubProviderConfig: api.NewGithubProviderConfig(),
+		Name: "oddbit-dot-com",
 	},
 
 	Settings: &github.OrganizationSettingsArgs{

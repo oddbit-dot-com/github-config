@@ -93,8 +93,7 @@ func TestGitHubProviderUsesAppCredentials(t *testing.T) {
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
 			Owner: Owner{
-				Name:                 "testorg",
-				GithubProviderConfig: NewGithubProviderConfig(),
+				Name: "testorg",
 			},
 		}
 		return org.Ensure(ctx)
@@ -128,8 +127,7 @@ func TestGitHubProviderUsesOrgsAPIForOrganization(t *testing.T) {
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
 			Owner: Owner{
-				Name:                 "testorg",
-				GithubProviderConfig: NewGithubProviderConfig(),
+				Name: "testorg",
 			},
 		}
 		return org.Ensure(ctx)
@@ -159,8 +157,7 @@ func TestGitHubProviderUsesUsersAPIForUser(t *testing.T) {
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		user := &User{
 			Owner: Owner{
-				Name:                 "testuser",
-				GithubProviderConfig: NewGithubProviderConfig(),
+				Name: "testuser",
 			},
 		}
 		return user.Ensure(ctx)
@@ -188,8 +185,7 @@ func TestGitHubProviderNoTokenWhenNoCredentials(t *testing.T) {
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		org := &Organization{
 			Owner: Owner{
-				Name:                 "testorg",
-				GithubProviderConfig: NewGithubProviderConfig(),
+				Name: "testorg",
 			},
 		}
 		return org.Ensure(ctx)
