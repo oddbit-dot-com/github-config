@@ -27,7 +27,7 @@ var User = api.User{
 		},
 		&api.Repository{
 			Name:          "workinghours",
-			DefaultBranch: "master",
+			DefaultBranch: "main",
 			RepositoryArgs: &github.RepositoryArgs{
 				Description: pulumi.String("A terrible utility for doing awful things to your repository history"),
 			},
