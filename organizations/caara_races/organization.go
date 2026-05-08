@@ -11,7 +11,7 @@ import (
 
 var Organization = api.Organization{
 	Owner: api.Owner{
-		Name:                "caara-races",
+		Name: "caara-races",
 		VaultProviderConfig: api.NewVaultProviderConfig().
 			WithMountPoint("caara-races").
 			WithToken(os.Getenv("VAULT_TOKEN_CAARA_RACES")).
@@ -40,6 +40,18 @@ var Organization = api.Organization{
 	},
 
 	Repositories: []*api.Repository{
+		{
+			Name: "caara-net-website",
+			RepositoryArgs: &github.RepositoryArgs{
+				Description: pulumi.String("Proposed website for CAARA main website"),
+				AutoInit:    pulumi.Bool(false),
+				HomepageUrl: pulumi.String("https://caara-net.oddbit.com/"),
+				Pages: &github.RepositoryPagesArgs{
+					Cname:     pulumi.String("caara-net.oddbit.com"),
+					BuildType: pulumi.String(api.PagesBuildWorkflow),
+				},
+			},
+		},
 		{
 			Name: "caara-races-website",
 			RepositoryArgs: &github.RepositoryArgs{
