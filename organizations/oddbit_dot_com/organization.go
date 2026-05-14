@@ -40,5 +40,16 @@ var Organization = api.Organization{
 				Description: pulumi.String("Manage oddbit.com DNS"),
 			},
 		},
+		{
+			Name: "n1lks.oddbit.com",
+			RepositoryArgs: &github.RepositoryArgs{
+				Description: pulumi.String("Sources for n1lks.oddbit.com website"),
+				AutoInit:    pulumi.Bool(false),
+				Pages: &github.RepositoryPagesArgs{
+					BuildType: pulumi.String(api.PagesBuildWorkflow),
+					Cname:     pulumi.String("n1lks.oddbit.com"),
+				},
+			},
+		},
 	},
 }
